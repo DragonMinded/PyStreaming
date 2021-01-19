@@ -192,19 +192,9 @@
                   let message = $( 'input.message' ).val();
                   $( 'input.message' ).val( '' );
 
-                  if( message == "/users" ) {
-                    add( '<div><b style="color: #000">Connected users:</b> '+users.join(', ') +'</div>' );
-                  }
-                  else if( message == "/help" ) {
-                    add( '<div style="color: #f00">The following commands are recognized:</div>' );
-                    add( '<div style="color: #f00">/help - show this message</div>' );
-                    add( '<div style="color: #f00">/users - show the currently chatting users</div>' );
-                  }
-                  else {
-                    socket.emit( 'message', {
-                      message : message,
-                    } );
-                  }
+                  socket.emit( 'message', {
+                    message : message,
+                  } );
                 } );
               });
 
@@ -236,6 +226,15 @@
                     $( 'div.error' ).text( '' );
                   }
                   add( '<div><b style="color: #000">'+msg.username+':</b> '+msg.message+'</div>' );
+                }
+              })
+
+              socket.on( 'action received', function( msg ) {
+                if( connected ) {
+                  if( msg.username == username ) {
+                    $( 'div.error' ).text( '' );
+                  }
+                  add( '<div><b style="color: #000">* '+msg.username+' '+msg.message+'</div>' );
                 }
               })
 

@@ -142,14 +142,71 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
         socketio.emit('error', {'msg': 'User is not authenticated?'}, room=request.sid)
         return
 
-    socketio.emit(
-        'message received',
-        {
-            'username': socket_to_info[request.sid].username,
-            'message': json['message'],
-        },
-        room=socket_to_info[request.sid].streamer,
-    )
+    message = json['message'].strip()
+    if message[0] == "/":
+        # Command of some sort
+        if ' ' in message:
+            command, message = message.split(' ', 1)
+        else:
+            command = message
+            message = ""
+
+        if command in ["/say"]:
+            # Just a say message
+            socketio.emit(
+                'message received',
+                {
+                    'username': socket_to_info[request.sid].username,
+                    'message': message,
+                },
+                room=socket_to_info[request.sid].streamer,
+            )
+            return
+        elif command in ["/me", "/action", "/describe"]:
+            # An action message
+            socketio.emit(
+                'action received',
+                {
+                    'username': socket_to_info[request.sid].username,
+                    'message': message,
+                },
+                room=socket_to_info[request.sid].streamer,
+            )
+            return
+        elif command in ["/help"]:
+            for message in [
+                "The following commands are recognized:",
+                "/help - show this message",
+                "/users - show the currently chatting users",
+                "/me - perform an action",
+            ]:
+                socketio.emit(
+                    'server',
+                    {'msg': message},
+                    room=request.sid,
+                )
+        elif command in ["/users"]:
+            socketio.emit(
+                'server',
+                {'msg': 'Users in chat: ' + ", ".join(users_in_room(socket_to_info[request.sid].streamer))},
+                room=request.sid,
+            )
+        else:
+            socketio.emit(
+                'server',
+                {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                room=request.sid,
+            )
+            return
+    else:
+        socketio.emit(
+            'message received',
+            {
+                'username': socket_to_info[request.sid].username,
+                'message': message,
+            },
+            room=socket_to_info[request.sid].streamer,
+        )
 
 
 def load_config(filename: str) -> None:
