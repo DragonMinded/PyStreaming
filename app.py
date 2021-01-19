@@ -1,13 +1,15 @@
 import argparse
+import yaml
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room  # type: ignore
-
 from typing import Any, Dict, List
+
+from data import Data
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'TODO:thisneedstochange'
 socketio = SocketIO(app, cors_allowed_origins='*')
+config: Dict[str, Any] = {}
 
 
 class SocketInfo:
@@ -109,10 +111,21 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
     )
 
 
+def load_config(filename: str) -> None:
+    global config
+
+    config.update(yaml.safe_load(open(filename)))  # type: ignore
+    config['database']['engine'] = Data.create_engine(config)
+    app.secret_key = config['secret_key']
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A front end services provider for eAmusement games.")
     parser.add_argument("-p", "--port", help="Port to listen on. Defaults to 5678", type=int, default=5678)
     parser.add_argument("-d", "--debug", help="Enable debug mode. Defaults to off", action="store_true")
+    parser.add_argument("-c", "--config", help="Config file to parse for instance settings. Defaults to config.yaml", type=str, default="config.yaml")
     args = parser.parse_args()
+
+    load_config(args.config)
 
     socketio.run(app, host='0.0.0.0', port=args.port, debug=args.debug)

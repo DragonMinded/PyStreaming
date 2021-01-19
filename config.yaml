@@ -1,0 +1,14 @@
+database:
+    # IP or DNS entry for MySQL instance
+    address: "localhost"
+    # Database that will be used
+    database: "pystreaming"
+    # User who has full credentials to the above DB
+    user: "pystreaming"
+    # Password of said user
+    password: "pystreaming"
+
+# Key used in Flask for encryption of cookies and the like.
+secret_key: 'this_should_be_changed_to_something_long_and_random'
+# HLS output directory as configured in your RTMP transcoding server.
+hls_dir: '/path/to/HLS'
