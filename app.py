@@ -1,6 +1,8 @@
 import argparse
+import calendar
+import datetime
 import yaml
-from flask import Flask, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 from flask_socketio import SocketIO, join_room  # type: ignore
 from typing import Any, Dict, List
 
@@ -17,18 +19,39 @@ def mysql() -> Data:
     return Data(config)
 
 
+def now() -> int:
+    """
+    Returns the current unix timestamp in the UTC timezone.
+    """
+    return calendar.timegm(datetime.datetime.utcnow().timetuple())
+
+
 class SocketInfo:
-    def __init__(self, streamer: str, username: str, admin: bool) -> None:
+    def __init__(self, sid: Any, streamer: str, username: str, admin: bool) -> None:
+        self.sid = sid
         self.streamer = streamer
         self.username = username
         self.admin = admin
 
 
+class PresenceInfo:
+    def __init__(self, sid: Any, streamer: str) -> None:
+        self.sid = sid
+        self.streamer = streamer
+        self.timestamp = now()
+
+
 socket_to_info: Dict[Any, SocketInfo] = {}
+socket_to_presence: Dict[Any, PresenceInfo] = {}
 
 
 def users_in_room(streamer: str) -> List[str]:
     return [i.username for i in socket_to_info.values() if i.streamer == streamer]
+
+
+def stream_count(streamer: str) -> int:
+    oldest = now() - 30
+    return len([None for x in socket_to_presence.values() if x.streamer == streamer and x.timestamp >= oldest])
 
 
 @app.route('/')
@@ -50,6 +73,25 @@ def stream(streamer: str) -> str:
     return render_template('stream.html', streamer=result["username"])
 
 
+@app.route('/<streamer>/info')
+def streaminfo(streamer: str) -> Response:
+    streamer = streamer.lower()
+
+    cursor = mysql().execute(
+        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        return jsonify({}), 4040
+
+    # TODO: Compute liveness
+    live = True
+    return jsonify({
+        'live': live,
+        'count': stream_count(streamer) if live else 0,
+    })
+
+
 @socketio.on('connect')
 def connect() -> None:
     if request.sid in socket_to_info:
@@ -63,6 +105,18 @@ def disconnect() -> None:
         del socket_to_info[request.sid]
 
         socketio.emit('disconnected', {'username': info.username, 'users': users_in_room(info.streamer)}, room=info.streamer)
+    if request.sid in socket_to_presence:
+        del socket_to_presence[request.sid]
+
+
+@socketio.on('presence')
+def handle_presence(json, methods=['GET', 'POST']) -> None:
+    if 'streamer' not in json:
+        return
+
+    # Update user presence information
+    streamer = json['streamer'].lower()
+    socket_to_presence[request.sid] = PresenceInfo(request.sid, streamer)
 
 
 @socketio.on('login')
@@ -86,6 +140,9 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
     streamer = json['streamer'].lower()
     username = json['username']
     key = json.get('key', None)
+
+    # Update user presence information
+    socket_to_presence[request.sid] = PresenceInfo(request.sid, streamer)
 
     cursor = mysql().execute(
         "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
@@ -119,7 +176,7 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
             socketio.emit('error', {'msg': 'Username is taken'}, room=request.sid)
             return
 
-    socket_to_info[request.sid] = SocketInfo(streamer, json['username'], admin)
+    socket_to_info[request.sid] = SocketInfo(request.sid, streamer, json['username'], admin)
     join_room(streamer)
     socketio.emit('login success', {'username': json['username']}, room=request.sid)
     socketio.emit('connected', {'username': json['username'], 'users': users_in_room(streamer)}, room=streamer)
@@ -141,6 +198,9 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
     if request.sid not in socket_to_info:
         socketio.emit('error', {'msg': 'User is not authenticated?'}, room=request.sid)
         return
+
+    # Update user presence information
+    socket_to_presence[request.sid] = PresenceInfo(request.sid, socket_to_info[request.sid].streamer)
 
     message = json['message'].strip()
     if message[0] == "/":
