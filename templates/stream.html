@@ -99,11 +99,21 @@
               </form>
             </div>
 
+            <div class="chat-inner" id="admin-frame" style="display: none">
+              <form action="" method="POST" id="admin">
+                <div class="username-prompt">authenticate for admin access</div>
+                <input type="password" class="password" id="password"/>
+                <input type="submit" value="Authenticate"/>
+                <div class="error"></div>
+              </form>
+            </div>
+
             <div class="chat-inner" id="chat-frame" style="display: none">
               <form action="" method="POST" id="chat">
                 <div class="messages"></div>
                 <input type="text" class="message" id="message" autocomplete="off" placeholder="Type a message..."/>
                 <input type="submit" value="Send"/>
+                <div class="error"></div>
               </form>
             </div>
 
@@ -148,7 +158,29 @@
                 } );
               } );
 
+              socket.on( 'login key required', function( msg ) {
+                username = msg.username;
+
+                $( 'div.error' ).text( '' );
+                $( '#login-frame' ).remove();
+                $( '#admin-frame' ).show();
+                $( '#password' ).focus()
+
+                $( '#admin' ).on( 'submit', function( e ) {
+                  e.preventDefault();
+
+                  let password = $( 'input.password' ).val();
+                  socket.emit( 'login', {
+                    streamer : streamer,
+                    username : username,
+                    key : password,
+                  } );
+                } );
+              });
+
               socket.on( 'login success', function( msg ) {
+                username = msg.username;
+
                 $( 'div.error' ).text( '' );
                 $( '#login-frame' ).remove();
                 $( '#chat-frame' ).show();
@@ -185,6 +217,10 @@
                   connected = true;
                 }
                 users = msg.users;
+              })
+
+              socket.on( 'server', function( msg ) {
+                add( '<div><b style="color: #f00">'+msg.msg+'</b></div>' );
               })
 
               socket.on( 'disconnected', function( msg ) {

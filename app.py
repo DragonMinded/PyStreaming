@@ -12,10 +12,16 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 config: Dict[str, Any] = {}
 
 
+def mysql() -> Data:
+    global config
+    return Data(config)
+
+
 class SocketInfo:
-    def __init__(self, streamer: str, username: str) -> None:
+    def __init__(self, streamer: str, username: str, admin: bool) -> None:
         self.streamer = streamer
         self.username = username
+        self.admin = admin
 
 
 socket_to_info: Dict[Any, SocketInfo] = {}
@@ -27,13 +33,21 @@ def users_in_room(streamer: str) -> List[str]:
 
 @app.route('/')
 def index() -> str:
+    # TODO: Enumerate all streamers and detect if they are live right now.
     return render_template('index.html')
 
 
 @app.route('/<streamer>/')
 def stream(streamer: str) -> str:
-    # TODO: Look up canonical name based on streamer here
-    return render_template('stream.html', streamer=streamer)
+    cursor = mysql().execute(
+        "SELECT username FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        return render_template('404.html'), 404
+
+    result = cursor.fetchone()
+    return render_template('stream.html', streamer=result["username"])
 
 
 @socketio.on('connect')
@@ -69,8 +83,32 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
         socketio.emit('error', {'msg': 'Username cannot be blank'}, room=request.sid)
         return
 
-    # TODO: Check streamer against a DB here
     streamer = json['streamer'].lower()
+    username = json['username']
+    key = json.get('key', None)
+
+    cursor = mysql().execute(
+        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        socketio.emit('error', {'msg': 'Streamer does not exist'}, room=request.sid)
+        return
+
+    admin = False
+    if username.lower() == streamer:
+        result = cursor.fetchone()
+
+        if key is None:
+            socketio.emit('login key required', {'username': result['username']}, room=request.sid)
+            return
+
+        if key != result["key"]:
+            socketio.emit('error', {'msg': 'Invalid password!'}, room=request.sid)
+            return
+
+        username = result['username']
+        admin = True
 
     for _, existing in socket_to_info.items():
         if existing.streamer != streamer:
@@ -81,10 +119,13 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
             socketio.emit('error', {'msg': 'Username is taken'}, room=request.sid)
             return
 
-    socket_to_info[request.sid] = SocketInfo(streamer, json['username'])
+    socket_to_info[request.sid] = SocketInfo(streamer, json['username'], admin)
     join_room(streamer)
-    socketio.emit('login success', {}, room=request.sid)
+    socketio.emit('login success', {'username': json['username']}, room=request.sid)
     socketio.emit('connected', {'username': json['username'], 'users': users_in_room(streamer)}, room=streamer)
+
+    if admin:
+        socketio.emit('server', {'msg': 'You have admin rights.'}, room=request.sid)
 
 
 @socketio.on('message')
