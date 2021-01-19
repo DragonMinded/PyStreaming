@@ -1,6 +1,7 @@
 import argparse
 import calendar
 import datetime
+import os
 import yaml
 from flask import Flask, Response, jsonify, render_template, request
 from flask_socketio import SocketIO, join_room  # type: ignore
@@ -24,6 +25,13 @@ def now() -> int:
     Returns the current unix timestamp in the UTC timezone.
     """
     return calendar.timegm(datetime.datetime.utcnow().timetuple())
+
+
+def modified(fname: str) -> int:
+    """
+    Returns the modification time in the UTC timezone.
+    """
+    return calendar.timegm(datetime.datetime.utcfromtimestamp(os.path.getmtime(fname)).timetuple())
 
 
 class SocketInfo:
@@ -52,6 +60,22 @@ def users_in_room(streamer: str) -> List[str]:
 def stream_count(streamer: str) -> int:
     oldest = now() - 30
     return len([None for x in socket_to_presence.values() if x.streamer == streamer and x.timestamp >= oldest])
+
+
+def stream_live(streamkey: str) -> bool:
+    global config
+
+    m3u8 = os.path.join(config['hls_dir'], streamkey) + '.m3u8'
+    print(m3u8)
+    if not os.path.isfile(m3u8):
+        # There isn't a playlist file, we aren't live.
+        return False
+
+    delta = now() - modified(m3u8)
+    if delta > (int(config['hls_fragment_length']) * 3):
+        return False
+
+    return True
 
 
 @app.route('/')
@@ -84,8 +108,8 @@ def streaminfo(streamer: str) -> Response:
     if cursor.rowcount != 1:
         return jsonify({}), 4040
 
-    # TODO: Compute liveness
-    live = True
+    result = cursor.fetchone()
+    live = stream_live(result['key'])
     return jsonify({
         'live': live,
         'count': stream_count(streamer) if live else 0,
