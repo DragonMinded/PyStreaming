@@ -5,3 +5,4 @@ gevent-websocket
 PyYAML
 SQLAlchemy
 alembic
+mysqlclient
