@@ -161,6 +161,7 @@
           var username = undefined;
           var streamer = {{ streamer|tojson|safe }}
           var connected = false;
+          var live = false;
           var users = [];
 
           var ping = function() {
@@ -175,6 +176,17 @@
                   $( 'div.info' ).text( 'Number of live viewers: ' + response.count );
               } else {
                   $( 'div.info' ).text( '' );
+              }
+
+              if (response.live != live) {
+                live = response.live;
+                console.log('reloading');
+                videojs.players['my-video'].reset();
+                videojs.players['my-video'].src({
+                  src: "/" + streamer + "/playlist.m3u8",
+                  type: "application/x-mpegURL",
+                });
+                videojs.players['my-video'].load();
               }
             } );
           }

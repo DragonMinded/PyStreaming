@@ -3,9 +3,9 @@ import calendar
 import datetime
 import os
 import yaml
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, make_response
 from flask_socketio import SocketIO, join_room  # type: ignore
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from data import Data
 
@@ -66,7 +66,6 @@ def stream_live(streamkey: str) -> bool:
     global config
 
     m3u8 = os.path.join(config['hls_dir'], streamkey) + '.m3u8'
-    print(m3u8)
     if not os.path.isfile(m3u8):
         # There isn't a playlist file, we aren't live.
         return False
@@ -76,6 +75,39 @@ def stream_live(streamkey: str) -> bool:
         return False
 
     return True
+
+
+def fetch_m3u8(streamkey: str) -> Optional[str]:
+    global config
+
+    m3u8 = os.path.join(config['hls_dir'], streamkey) + '.m3u8'
+    if not os.path.isfile(m3u8):
+        # There isn't a playlist file, we aren't live.
+        return None
+
+    with open(m3u8, "rb") as bfp:
+        return bfp.read().decode('utf-8')
+
+
+def fetch_ts(filename: str) -> Optional[bytes]:
+    global config
+
+    ts = os.path.join(config['hls_dir'], filename)
+    if not os.path.isfile(ts):
+        # The file doesn't exist
+        return None
+
+    with open(ts, "rb") as bfp:
+        return bfp.read()
+
+
+def symlink(oldname: str, newname: str) -> None:
+    src = os.path.join(config['hls_dir'], oldname)
+    dst = os.path.join(config['hls_dir'], newname)
+    try:
+        os.symlink(src, dst)
+    except FileExistsError:
+        pass
 
 
 @app.route('/')
@@ -106,7 +138,7 @@ def streaminfo(streamer: str) -> Response:
         {"username": streamer},
     )
     if cursor.rowcount != 1:
-        return jsonify({}), 4040
+        return jsonify({}), 404
 
     result = cursor.fetchone()
     live = stream_live(result['key'])
@@ -114,6 +146,52 @@ def streaminfo(streamer: str) -> Response:
         'live': live,
         'count': stream_count(streamer) if live else 0,
     })
+
+
+@app.route('/<streamer>/playlist.m3u8')
+def streamplaylist(streamer: str) -> str:
+    streamer = streamer.lower()
+
+    cursor = mysql().execute(
+        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        return "", 404
+
+    result = cursor.fetchone()
+    key = result['key']
+
+    if not stream_live(key):
+        return "", 404
+
+    m3u8 = fetch_m3u8(key)
+    if m3u8 is None:
+        return "", 404
+
+    lines = m3u8.splitlines()
+    for i in range(len(lines)):
+        if lines[i].startswith(key) and lines[i][-3:] == ".ts":
+            # We need to rewrite this
+            oldname = lines[i]
+            newname = f"{streamer}" + lines[i][len(key):]
+            symlink(oldname, newname)
+            lines[i] = "/hls/" + newname
+
+    m3u8 = "\n".join(lines)
+    return m3u8
+
+
+@app.route('/hls/<filename>')
+def streamts(filename: str) -> bytes:
+    # This is a debugging endpoint only, your production nginx setup should handle this.
+    ts = fetch_ts(filename)
+    if ts is None:
+        return "", 404
+
+    response = make_response(ts)
+    response.headers.set('Content-Type', 'video/mp2t')
+    return response
 
 
 @socketio.on('connect')
