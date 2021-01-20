@@ -3,7 +3,7 @@ import calendar
 import datetime
 import os
 import yaml
-from flask import Flask, Response, jsonify, render_template, request, make_response
+from flask import Flask, Response, abort, jsonify, render_template, request, make_response
 from flask_socketio import SocketIO, join_room  # type: ignore
 from typing import Any, Dict, List, Optional
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -133,7 +133,7 @@ def stream(streamer: str) -> str:
         {"username": streamer},
     )
     if cursor.rowcount != 1:
-        return render_template('404.html'), 404
+        abort(404)
 
     result = cursor.fetchone()
     return render_template('stream.html', streamer=result["username"])
@@ -148,7 +148,7 @@ def streaminfo(streamer: str) -> Response:
         {"username": streamer},
     )
     if cursor.rowcount != 1:
-        return jsonify({}), 404
+        abort(404)
 
     result = cursor.fetchone()
     live = stream_live(result['key'])
@@ -167,17 +167,17 @@ def streamplaylist(streamer: str) -> str:
         {"username": streamer},
     )
     if cursor.rowcount != 1:
-        return "", 404
+        abort(404)
 
     result = cursor.fetchone()
     key = result['key']
 
     if not stream_live(key):
-        return "", 404
+        abort(404)
 
     m3u8 = fetch_m3u8(key)
     if m3u8 is None:
-        return "", 404
+        abort(404)
 
     lines = m3u8.splitlines()
     for i in range(len(lines)):
@@ -197,7 +197,7 @@ def streamts(filename: str) -> bytes:
     # This is a debugging endpoint only, your production nginx setup should handle this.
     ts = fetch_ts(filename)
     if ts is None:
-        return "", 404
+        abort(404)
 
     response = make_response(ts)
     response.headers.set('Content-Type', 'video/mp2t')
