@@ -204,6 +204,25 @@ def streamts(filename: str) -> bytes:
     return response
 
 
+@app.route('/auth/on_publish', methods=["GET", "POST"])
+def publishcheck() -> Response:
+    key = request.values.get('name')
+    if key is None:
+        # We don't have a stream key, deny it.
+        abort(404)
+
+    cursor = mysql().execute(
+        "SELECT `key` FROM streamersettings WHERE `key` = :key",
+        {"key": key},
+    )
+    if cursor.rowcount != 1:
+        # We didn't find a registered streamer with this key, deny it.
+        abort(404)
+
+    # This is fine, allow it
+    return "Stream ok!", 200
+
+
 @socketio.on('connect')
 def connect() -> None:
     if request.sid in socket_to_info:
