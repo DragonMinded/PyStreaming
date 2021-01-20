@@ -6,6 +6,7 @@ import yaml
 from flask import Flask, Response, jsonify, render_template, request, make_response
 from flask_socketio import SocketIO, join_room  # type: ignore
 from typing import Any, Dict, List, Optional
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from data import Data
 
@@ -35,8 +36,9 @@ def modified(fname: str) -> int:
 
 
 class SocketInfo:
-    def __init__(self, sid: Any, streamer: str, username: str, admin: bool) -> None:
+    def __init__(self, sid: Any, ip: str, streamer: str, username: str, admin: bool) -> None:
         self.sid = sid
+        self.ip = ip
         self.streamer = streamer
         self.username = username
         self.admin = admin
@@ -278,7 +280,7 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
             socketio.emit('error', {'msg': 'Username is taken'}, room=request.sid)
             return
 
-    socket_to_info[request.sid] = SocketInfo(request.sid, streamer, json['username'], admin)
+    socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin)
     join_room(streamer)
     socketio.emit('login success', {'username': json['username']}, room=request.sid)
     socketio.emit('connected', {'username': json['username'], 'users': users_in_room(streamer)}, room=streamer)
@@ -383,9 +385,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A front end services provider for eAmusement games.")
     parser.add_argument("-p", "--port", help="Port to listen on. Defaults to 5678", type=int, default=5678)
     parser.add_argument("-d", "--debug", help="Enable debug mode. Defaults to off", action="store_true")
+    parser.add_argument("-n", "--nginx-proxy", help="Number of nginx proxies in front of this server. Defaults to 0", type=int, default=0)
     parser.add_argument("-c", "--config", help="Config file to parse for instance settings. Defaults to config.yaml", type=str, default="config.yaml")
     args = parser.parse_args()
 
     load_config(args.config)
 
+    if args.nginx_proxy > 0:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_host=args.nginx_proxy, x_proto=args.nginx_proxy, x_for=args.nginx_proxy)
     socketio.run(app, host='0.0.0.0', port=args.port, debug=args.debug)
