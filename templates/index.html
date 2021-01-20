@@ -18,7 +18,7 @@
           {% endif %}
           <a href="/{{ streamer['username'].lower() }}">{{ streamer['username'] }}</a>
           {% if streamer['live'] %}
-            is currently live with {{ streamer['count'] }} {{ 'viewers' if streamer['count'] > 1 else 'viewer' }}.
+            is currently live with {{ streamer['count'] }} {{ 'viewers' if streamer['count'] != 1 else 'viewer' }}.
           {% else %}
             is not currently live.
           {% endif %}
