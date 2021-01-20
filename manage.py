@@ -52,7 +52,7 @@ def dropstreamer(config: Dict[str, Any], username: Optional[str]) -> None:
 
 def liststreamers(config: Dict[str, Any]) -> None:
     data = Data(config)
-    cursor = data.execute("SELECT username FROM streamersettings");
+    cursor = data.execute("SELECT username FROM streamersettings")
     for result in cursor.fetchall():
         print(f"Streamer: {result['username']}")
     data.close()

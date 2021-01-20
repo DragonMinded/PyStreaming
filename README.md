@@ -12,4 +12,3 @@ layer that ensures stream keys are never exposed publicly.
  * Emote and emoji support in chat.
  * Word filtering support for chat.
  * Rate limiting for message sends in chat.
- * Stream description/current action being streamed.

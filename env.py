@@ -39,13 +39,6 @@ def run_migrations_offline():
     """
     raise Exception('Not implemented or configured!')
 
-    url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url, target_metadata=target_metadata, literal_binds=True)
-
-    with context.begin_transaction():
-        context.run_migrations()
-
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -74,6 +67,7 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -117,10 +117,14 @@ def symlink(oldname: str, newname: str) -> None:
 @app.route('/')
 def index() -> str:
     cursor = mysql().execute(
-        "SELECT `username`, `key` FROM streamersettings",
+        "SELECT `username`, `key`, `description` FROM streamersettings",
     )
     streamers = [
-        {'username': result['username'], 'live': stream_live(result['key']), 'count': stream_count(result['username'].lower())}
+        {
+            'username': result['username'],
+            'live': stream_live(result['key']), 'count': stream_count(result['username'].lower()),
+            'description': result['description'] if result['description'] else '',
+        }
         for result in cursor.fetchall()
     ]
     return render_template('index.html', streamers=streamers)
@@ -144,7 +148,7 @@ def streaminfo(streamer: str) -> Response:
     streamer = streamer.lower()
 
     cursor = mysql().execute(
-        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        "SELECT `username`, `key`, `description` FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
     if cursor.rowcount != 1:
@@ -155,6 +159,7 @@ def streaminfo(streamer: str) -> Response:
     return jsonify({
         'live': live,
         'count': stream_count(streamer) if live else 0,
+        'description': result['description'] if result['description'] else '',
     })
 
 
@@ -384,6 +389,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                 "/me - perform an action",
             ]
             if socket_to_info[request.sid].admin:
+                messages.append("/description <text> - set the stream description")
                 messages.append("/mod <user> - grant moderator privileges to user")
                 messages.append("/demod <user> - revoke moderator privileges to user")
             if socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator:
@@ -558,6 +564,27 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                     {'msg': f"Unrecognized user '{message}'"},
                     room=request.sid,
                 )
+        elif command in ["/desc", "/description"]:
+            if not socket_to_info[request.sid].admin:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            streamer = socket_to_info[request.sid].streamer
+            description = message.strip()
+            cursor = mysql().execute(
+                "UPDATE streamersettings SET `description` = :description WHERE `username` = :streamer",
+                {"streamer": streamer, "description": description}
+            )
+
+            socketio.emit(
+                'server',
+                {'msg': f"Stream description updated!"},
+                room=request.sid,
+            )
         else:
             socketio.emit(
                 'server',

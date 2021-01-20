@@ -24,6 +24,7 @@ streamersettings = Table(  # type: ignore
     metadata,
     Column('username', String(256), nullable=False, unique=True),
     Column('key', String(256), nullable=False, unique=True),
+    Column('description', String(512)),
 )
 
 
