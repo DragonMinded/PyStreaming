@@ -36,12 +36,14 @@ def modified(fname: str) -> int:
 
 
 class SocketInfo:
-    def __init__(self, sid: Any, ip: str, streamer: str, username: str, admin: bool) -> None:
+    def __init__(self, sid: Any, ip: str, streamer: str, username: str, admin: bool, moderator: bool, muted: bool) -> None:
         self.sid = sid
         self.ip = ip
         self.streamer = streamer
         self.username = username
         self.admin = admin
+        self.moderator = moderator
+        self.muted = muted
 
 
 class PresenceInfo:
@@ -280,7 +282,7 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
             socketio.emit('error', {'msg': 'Username is taken'}, room=request.sid)
             return
 
-    socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin)
+    socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin, False, False)
     join_room(streamer)
     socketio.emit('login success', {'username': json['username']}, room=request.sid)
     socketio.emit('connected', {'username': json['username'], 'users': users_in_room(streamer)}, room=streamer)
@@ -316,34 +318,54 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
             message = ""
 
         if command in ["/say"]:
-            # Just a say message
-            socketio.emit(
-                'message received',
-                {
-                    'username': socket_to_info[request.sid].username,
-                    'message': message,
-                },
-                room=socket_to_info[request.sid].streamer,
-            )
-            return
+            if socket_to_info[request.sid].muted:
+                socketio.emit(
+                    'server',
+                    {'msg': "You are muted!"},
+                    room=request.sid,
+                )
+            else:
+                # Just a say message
+                socketio.emit(
+                    'message received',
+                    {
+                        'username': socket_to_info[request.sid].username,
+                        'message': message,
+                    },
+                    room=socket_to_info[request.sid].streamer,
+                )
         elif command in ["/me", "/action", "/describe"]:
-            # An action message
-            socketio.emit(
-                'action received',
-                {
-                    'username': socket_to_info[request.sid].username,
-                    'message': message,
-                },
-                room=socket_to_info[request.sid].streamer,
-            )
-            return
+            if socket_to_info[request.sid].muted:
+                socketio.emit(
+                    'server',
+                    {'msg': "You are muted!"},
+                    room=request.sid,
+                )
+            else:
+                # An action message
+                socketio.emit(
+                    'action received',
+                    {
+                        'username': socket_to_info[request.sid].username,
+                        'message': message,
+                    },
+                    room=socket_to_info[request.sid].streamer,
+                )
         elif command in ["/help"]:
-            for message in [
+            messages = [
                 "The following commands are recognized:",
                 "/help - show this message",
                 "/users - show the currently chatting users",
                 "/me - perform an action",
-            ]:
+            ]
+            if socket_to_info[request.sid].admin:
+                messages.append("/mod <user> - grant moderator privileges to user")
+                messages.append("/demod <user> - revoke moderator privileges to user")
+            if socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator:
+                messages.append("/mute <user> - mute user")
+                messages.append("/unmute <user> - unmute user")
+
+            for message in messages:
                 socketio.emit(
                     'server',
                     {'msg': message},
@@ -355,6 +377,162 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                 {'msg': 'Users in chat: ' + ", ".join(users_in_room(socket_to_info[request.sid].streamer))},
                 room=request.sid,
             )
+        elif command in ["/mute", "/quiet"]:
+            if not (socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator):
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            message = message.strip().lower()
+            for user in socket_to_info.values():
+                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
+                    changed = (user.muted == False)
+                    user.muted = True
+
+                    if changed:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' has been muted."},
+                            room=request.sid,
+                        )
+                        socketio.emit(
+                            'server',
+                            {'msg': f"You have been muted."},
+                            room=user.sid,
+                        )
+                    else:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' is already muted."},
+                            room=request.sid,
+                        )
+                    break
+            else:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized user '{message}'"},
+                    room=request.sid,
+                )
+        elif command in ["/unmute", "/unquiet"]:
+            if not (socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator):
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            message = message.strip().lower()
+            for user in socket_to_info.values():
+                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
+                    changed = (user.muted == True)
+                    user.muted = False
+
+                    if changed:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' has been unmuted."},
+                            room=request.sid,
+                        )
+                        socketio.emit(
+                            'server',
+                            {'msg': f"You have been unmuted."},
+                            room=user.sid,
+                        )
+                    else:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' is not muted."},
+                            room=request.sid,
+                        )
+                    break
+            else:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized user '{message}'"},
+                    room=request.sid,
+                )
+        elif command in ["/mod"]:
+            if not socket_to_info[request.sid].admin:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            message = message.strip().lower()
+            for user in socket_to_info.values():
+                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
+                    changed = (user.moderator == False)
+                    user.moderator = True
+
+                    if changed:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' has been promoted to moderator."},
+                            room=request.sid,
+                        )
+                        socketio.emit(
+                            'server',
+                            {'msg': f"You have been promoted to moderator."},
+                            room=user.sid,
+                        )
+                    else:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' is already a moderator."},
+                            room=request.sid,
+                        )
+                    break
+            else:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized user '{message}'"},
+                    room=request.sid,
+                )
+        elif command in ["/demod", "/unmod"]:
+            if not socket_to_info[request.sid].admin:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            message = message.strip().lower()
+            for user in socket_to_info.values():
+                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
+                    changed = (user.moderator == True)
+                    user.moderator = False
+
+                    if changed:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' has been demoted from moderator."},
+                            room=request.sid,
+                        )
+                        socketio.emit(
+                            'server',
+                            {'msg': f"You have been demoted from moderator."},
+                            room=user.sid,
+                        )
+                    else:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"User '{message}' is not a moderator."},
+                            room=request.sid,
+                        )
+                    break
+            else:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized user '{message}'"},
+                    room=request.sid,
+                )
         else:
             socketio.emit(
                 'server',
@@ -363,14 +541,21 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
             )
             return
     else:
-        socketio.emit(
-            'message received',
-            {
-                'username': socket_to_info[request.sid].username,
-                'message': message,
-            },
-            room=socket_to_info[request.sid].streamer,
-        )
+        if socket_to_info[request.sid].muted:
+            socketio.emit(
+                'server',
+                {'msg': "You are muted!"},
+                room=request.sid,
+            )
+        else:
+            socketio.emit(
+                'message received',
+                {
+                    'username': socket_to_info[request.sid].username,
+                    'message': message,
+                },
+                room=socket_to_info[request.sid].streamer,
+            )
 
 
 def load_config(filename: str) -> None:
