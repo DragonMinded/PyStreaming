@@ -7,8 +7,23 @@
   </head>
 
   <body>
+    <h1>All Streamers on this Network</h1>
     <div>
-      Placeholder!
+      {% for streamer in streamers %}
+        <div>
+          {% if streamer['live'] %}
+            <span style="color: red">&#x2B24; </span>
+          {% else %}
+            &#x2B24;
+          {% endif %}
+          <a href="/{{ streamer['username'].lower() }}">{{ streamer['username'] }}</a>
+          {% if streamer['live'] %}
+            is currently live with {{ streamer['count'] }} {{ 'viewers' if streamer['count'] > 1 else 'viewer' }}.
+          {% else %}
+            is not currently live.
+          {% endif %}
+        </div>
+      {% endfor %}
     </div>
   </body>
 </html>

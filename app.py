@@ -116,8 +116,14 @@ def symlink(oldname: str, newname: str) -> None:
 
 @app.route('/')
 def index() -> str:
-    # TODO: Enumerate all streamers and detect if they are live right now.
-    return render_template('index.html')
+    cursor = mysql().execute(
+        "SELECT `username`, `key` FROM streamersettings",
+    )
+    streamers = [
+        {'username': result['username'], 'live': stream_live(result['key']), 'count': stream_count(result['username'].lower())}
+        for result in cursor.fetchall()
+    ]
+    return render_template('index.html', streamers=streamers)
 
 
 @app.route('/<streamer>/')
