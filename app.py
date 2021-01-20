@@ -420,7 +420,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
             message = message.strip().lower()
             for user in socket_to_info.values():
                 if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.muted == False)
+                    changed = (user.muted is False)
                     user.muted = True
 
                     if changed:
@@ -431,7 +431,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                         )
                         socketio.emit(
                             'server',
-                            {'msg': f"You have been muted."},
+                            {'msg': "You have been muted."},
                             room=user.sid,
                         )
                     else:
@@ -459,7 +459,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
             message = message.strip().lower()
             for user in socket_to_info.values():
                 if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.muted == True)
+                    changed = (user.muted is True)
                     user.muted = False
 
                     if changed:
@@ -470,7 +470,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                         )
                         socketio.emit(
                             'server',
-                            {'msg': f"You have been unmuted."},
+                            {'msg': "You have been unmuted."},
                             room=user.sid,
                         )
                     else:
@@ -498,7 +498,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
             message = message.strip().lower()
             for user in socket_to_info.values():
                 if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.moderator == False)
+                    changed = (user.moderator is False)
                     user.moderator = True
 
                     if changed:
@@ -509,7 +509,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                         )
                         socketio.emit(
                             'server',
-                            {'msg': f"You have been promoted to moderator."},
+                            {'msg': "You have been promoted to moderator."},
                             room=user.sid,
                         )
                     else:
@@ -537,7 +537,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
             message = message.strip().lower()
             for user in socket_to_info.values():
                 if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.moderator == True)
+                    changed = (user.moderator is True)
                     user.moderator = False
 
                     if changed:
@@ -548,7 +548,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                         )
                         socketio.emit(
                             'server',
-                            {'msg': f"You have been demoted from moderator."},
+                            {'msg': "You have been demoted from moderator."},
                             room=user.sid,
                         )
                     else:
@@ -575,14 +575,14 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
 
             streamer = socket_to_info[request.sid].streamer
             description = message.strip()
-            cursor = mysql().execute(
+            mysql().execute(
                 "UPDATE streamersettings SET `description` = :description WHERE `username` = :streamer",
                 {"streamer": streamer, "description": description}
             )
 
             socketio.emit(
                 'server',
-                {'msg': f"Stream description updated!"},
+                {'msg': "Stream description updated!"},
                 room=request.sid,
             )
         else:

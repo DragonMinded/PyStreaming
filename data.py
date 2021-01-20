@@ -10,7 +10,7 @@ from sqlalchemy.engine import Engine  # type: ignore
 from sqlalchemy.engine.result import ResultProxy  # type: ignore
 from sqlalchemy.sql import text  # type: ignore
 from sqlalchemy.exc import ProgrammingError  # type: ignore
-from sqlalchemy.types import String, Integer  # type: ignore
+from sqlalchemy.types import String  # type: ignore
 
 
 metadata = MetaData()
@@ -150,7 +150,7 @@ class Data:
             self.__session.close()
             self.__session = None
 
-    def execute(self, sql: str, params: Optional[Dict[str, Any]]=None, safe_write_operation: bool=False) -> ResultProxy:
+    def execute(self, sql: str, params: Optional[Dict[str, Any]] = None, safe_write_operation: bool = False) -> ResultProxy:
         """
         Given a SQL string and some parameters, execute the query and return the result.
 
