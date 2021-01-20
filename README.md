@@ -71,10 +71,12 @@ This will run the application in production mode. If you want to run the
 application with more logging and auto-reloading on file changes, add `--debug`
 to the arguments. Remember that you can run the above script with `--help` to
 see options. Once this is up and running, you can visit the web page at
-[http://127.0.0.1:12345/](http://127.0.0.1:12345/). If you have changed the port
-in the above command, make sure you change the port in the URL as well. You
-should see a list of all the streamers you've added using the `manage.py` script.
-You can click on any of them to go to their streamer page.
+[http://127.0.0.1:12345/](http://127.0.0.1:12345/). If you are setting this up
+on a remote server, substitute the server's public IP for `127.0.0.1` above.
+If you have changed the port in the above command, make sure you change the port
+in the URL as well. You should see a list of all the streamers you've added
+using the `manage.py` script. You can click on any of them to go to their
+streamer page.
 
 ## nginx Configuration
 
@@ -99,7 +101,8 @@ rtmp {
         deny play all;
 
         # URL nginx will check when a user tries to stream, to verify the stream key
-        # is correct.
+        # is correct. You should leave this as 127.0.0.1 because nginx should only
+        # look on the local host for the auth endpoint.
         on_publish http://127.0.0.1:12345/auth/on_publish;
 
         # Create the "/live" endpoint people can stream to.
@@ -114,7 +117,7 @@ rtmp {
             hls on;
 
             # Where we will put the HLS files and playlists.
-            hls_path /opt/hls/;
+            hls_path /path/to/hls/;
 
             # How long each segment should be. Leave as-is.
             hls_fragment 3s;
@@ -129,17 +132,19 @@ rtmp {
 There are a few things you will want to customize in that above section based on
 your setup. First is the port in the `on_publish` section. The port must match the
 port you run your application with. If you changed your `--port` setting when you
-ran your server, make sure to also change the port in `on_publish` so that nginx
-can validate streamer permissions. The path given in `hls_path` should be writeable
-by the nginx user and the python server user, and should match the path in your
-`config.yaml` `hls_dir` setting. nginx will put transcoded HLS files in this
-directory and this is where the python application will look to find stream
+ran `app.py`, make sure to also change the port in `on_publish` so that nginx
+can validate streamer permissions. The path given in `hls_path` should be readable
+and writeable by the nginx user and the python server user, and should match the
+path in your `config.yaml` `hls_dir` setting. nginx will put transcoded HLS files
+in this directory and this is where the python application will look to find stream
 information.
 
 If you've set everything up correctly and are running `app.py` as well as nginx,
 you should be able to point OBS at `rtmp://127.0.0.1/live` and start streaming.
-Make sure your stream key matches what you added using `manage.py` above! If
-everything is set up right, you should see the stream go live on the web interface.
+Make sure your stream key matches what you added using `manage.py` above! If you
+are setting this up on a remote server, substitute the server's public IP for
+`127.0.0.1` in the URL above. If everything is set up right, you should see the
+stream go live on the web interface.
 
 ## Running Behind nginx
 
@@ -150,7 +155,7 @@ site to `sites-available` with contents similar to the following:
 
 ```
 server {
-    # The domain name this nginx config backs up.
+    # The domain name this nginx config serves.
     server_name coolstreamingsite.com;
 
     # Listen on port 80 (standard web port).
@@ -202,8 +207,9 @@ server {
         }
 
         # The root directory which holds the "hls" subdirectory we are putting
-        # HLS files in.
-        root /opt;
+        # HLS files in. The full directory will be this root and the location
+        # concatenated. In this case "/path/to/hls"
+        root /path/to;
 
         # Don't allow listing of the directory, to keep stream keys secret.
         autoindex off;
@@ -212,16 +218,16 @@ server {
 ```
 
 There are a few things you wil want to modify in this file. For starters, if you
-aren't using a DNS entry, get rid of the `server_name` entry. If you are, make
+aren't using DNS, get rid of the `server_name` entry. If you are, make
 sure this setting matches your domain name. Next, its important that the port in
-the `proxy_pass` settings matches the port you ran your `app.py` script with.
+both `proxy_pass` settings matches the port you ran your `app.py` script with.
 This should match the port in your `nginx.conf` as well. Finally, make sure the
 directory you chose to put HLS files in matches the `root` option. nginx is a bit
 weird here, since `/hls` is a subdirectory, you give it the parent of the option
-you specified in your `nginx.conf` and `config.yaml` files. So if you chose `/a/b/hls`
-as your HLS file location, you would put `/a/b` in the `root` option above. Make
-sure that the directory you chose is readable/writeable by both the nginx username
-and the username you are running `app.py` under.
+you specified in your `nginx.conf` and `config.yaml` files. So if you chose `/path/to/hls`
+as your HLS file location, you would put `/path/to` in the `root` option above. Make
+sure that the directory you chose is readable/writeable by both the nginx user
+and the user you are running `app.py` under.
 
 Once you set this up, you will want to run `app.py` again, this time with a slightly
 different set of arguments:
@@ -237,14 +243,16 @@ clients without introducing a security hole. If you set everything up correctly
 you will be able to visit [http://coolstreamingsite.com](http://coolstreamingsite.com)
 and view your streams! Note that you should change that domain if you are hosing this
 under a different DNS entry. If you do not have a DNS entry, just use your server's
-IP address instead.
+public IP address instead.
 
-## Port forwarding
+## Port forwarding and Firewall
 
-In order to reach the server from outside, forward ports 1935 and 80. If you set up
-SSL, forward port 443 instead. Do not forward the port you ran `app.py` on as nginx
-takes care of proxying requests for us. Now, you will be able to point OBS at
-`rtmp://coolstreamingsite.com/live` to stream!
+In order to reach the server from outside, open and forward ports 1935 and 80. If
+you set up SSL, open and forward port 443 instead of port 80. Do not open or forward
+the port you ran `app.py` on as nginx takes care of proxying requests for us.
+Now, you will be able to point OBS at `rtmp://coolstreamingsite.com/live` to stream!
+Make sure to change the domain to the one you are using for your server, or if you are
+not using DNS, the public IP of the server.
 
 # Streaming
 
@@ -252,11 +260,12 @@ Anyone that visits a streamer's page can join the chat and watch. There is curre
 no authentication for normal chatters. To join as the stream host, use the same name
 as the stream. You will be asked for your stream key as a password to authenticate.
 So, if you were using the user `test` from the set up example, you could visit
-[http://coolstreamingsite.com/test](http://coolstreamingsite.com/test) and login as
-`test`. You would need to provide the stream key `secretkey` in order to authenticate.
-Type `/help` into the chat box to see available commands. You can assign moderators
-to help you moderate if you wish. Stream hosts and moderators can mute users, and
-stream hosts can change the description. All users can chat and use actions with `/me`.
+[http://coolstreamingsite.com/test](http://coolstreamingsite.com/test) and join the
+chat as `test`. You will be asked to provide the stream key `secretkey` in order to
+authenticate. Once you are connected to chat, type `/help` into the chat box to see
+available commands. You can assign moderators to help you moderate if you wish. Stream
+hosts and moderators can mute users, and stream hosts can change the description.
+All users can chat and use actions with `/me`.
 
 # Future Enhancements
 
@@ -265,3 +274,4 @@ stream hosts can change the description. All users can chat and use actions with
  * Emote and emoji support in chat. This is fun!
  * Word filtering support for chat. Not currently necessary but I'm sure it will end up being needed.
  * Rate limiting for message sends in chat. Not currently necessary but I'm sure that it will end up being needed.
+ * Better front page with streamer highlights and such.
