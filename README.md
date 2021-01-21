@@ -119,10 +119,13 @@ rtmp {
             # Where we will put the HLS files and playlists.
             hls_path /path/to/hls/;
 
-            # How long each segment should be. Leave as-is.
+            # How long each segment should be. If you are experiencing large stream
+            # delays, you can reduce this down to 1s.
             hls_fragment 3s;
 
-            # How much playback buffer we keep around.
+            # How much playback buffer we keep around. If you are experiencing large
+            # stream delays, you can reduce this down to 10s. Be sure to adjust the
+            # hls_playlist_length option in config.yaml to match!
             hls_playlist_length 30s;
         }
     }

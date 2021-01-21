@@ -12,5 +12,5 @@ database:
 secret_key: 'this_should_be_changed_to_something_long_and_random'
 # HLS output directory as configured in your RTMP transcoding server.
 hls_dir: '/path/to/hls'
-# Fragment length in seconds for each HLS fragment.
-hls_fragment_length: 5
+# HLS playlist length in seconds as specified in your nginx configuration.
+hls_playlist_length: 30

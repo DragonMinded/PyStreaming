@@ -75,7 +75,7 @@ def stream_live(streamkey: str) -> bool:
         return False
 
     delta = now() - modified(m3u8)
-    if delta > (int(config['hls_fragment_length']) * 3):
+    if delta >= int(config['hls_playlist_length']):
         return False
 
     return True
