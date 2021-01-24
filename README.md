@@ -217,6 +217,16 @@ server {
         # Don't allow listing of the directory, to keep stream keys secret.
         autoindex off;
     }
+
+    location /static {
+        # Make sure to update this to the directory you're running app.py out
+        # of as it allows nginx to handle static resources, taking strain off
+        # of the python application.
+        root /location/of/this/repo;
+
+        # No need to show the world our dirty laundry.
+        autoindex off;
+    }
 }
 ```
 

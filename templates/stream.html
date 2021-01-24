@@ -2,106 +2,19 @@
 <html lang="en">
   <head>
       <title>{{ streamer }}'s Stream</title>
-      <style>
-        html, body {
-          margin: 0px;
-          padding: 0px;
-          width: 100vw;
-          height: 100vh;
-          background: #000000;
-        }
-
-        div.content {
-          width: 100vw;
-          height: 100vh;
-          display: flex;
-          flex-direction: row;
-          align-items: stretch;
-        }
-
-        div.stream-pane {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          padding: 5px 0px 5px 5px;
-        }
-
-        div.stream {
-          flex-grow: 1;
-        }
-
-        .video-js {
-          width: 100%;
-          height: 100%;
-        }
-
-        div.info {
-          display: flex;
-          flex-direction: row;
-          align-items: stretch;
-          height: 20px;
-          background: #000000;
-          color: #eeeeee;
-          text: smaller;
-          font-family: Arial, Helvetica, sans-serif;
-        }
-
-        div.stream-description {
-          color: #eeeeee;
-          text: smaller;
-          font-family: Arial, Helvetica, sans-serif;
-          padding-top: 3px;
-        }
-
-        div.stream-padding {
-          flex-grow: 1;
-        }
-
-        div.stream-count {
-          color: #eeeeee;
-          text: smaller;
-          font-family: Arial, Helvetica, sans-serif;
-          padding-top: 3px;
-          padding-right: 5px;
-        }
-
-        div.chat-pane {
-          padding: 0px 5px 5px 5px;
-          width: 250px;
-          display: flex;
-          flex-direction: row;
-          align-items: stretch;
-          background: #dddddd;
-        }
-
-        .chat-inner {
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          margin: 0px;
-          flex-grow: 1;
-        }
-
-        .chat-inner > * {
-          margin-top: 5px;
-        }
-
-        div.messages, div.blank {
-          flex-grow: 1;
-          overflow-y: auto;
-        }
-
-        div.error {
-          color: red;
-        }
-
-        div.username-prompt {
-          padding-bottom: 15px;
-          font-style: italic;
-        }
-      </style>
+      <link href="{{ url_for('static', filename='stream.css') }}" rel="stylesheet" />
       <link href="https://vjs.zencdn.net/7.5.5/video-js.css" rel="stylesheet" />
+      <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+      <script src="https://vjs.zencdn.net/7.10.2/video.min.js"></script>
+      <script>
+        videojs.addLanguage(
+          'en',
+          {
+            "The media could not be loaded, either because the server or network failed or because the format is not supported.": {{streamer|tojson|safe}} + " is currently offline!",
+          }
+        )
+      </script>
+      <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
   </head>
 
   <body>
@@ -128,16 +41,6 @@
           <div class="stream-padding"></div>
           <div class="stream-count"></div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-        <script src="https://vjs.zencdn.net/7.10.2/video.min.js"></script>
-        <script>
-          videojs.addLanguage(
-            'en',
-            {
-                "The media could not be loaded, either because the server or network failed or because the format is not supported.": {{streamer|tojson|safe}} + " is currently offline!",
-            }
-          )
-        </script>
       </div>
       <div class="chat-pane">
         <form class="chat-inner" action="" method="POST" id="login">
@@ -163,7 +66,6 @@
           <div class="error"></div>
         </form>
 
-        <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
         <script type="text/javascript">
           $( '#login' ).on( 'submit', function( e ) {
             e.preventDefault();
