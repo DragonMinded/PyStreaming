@@ -288,3 +288,5 @@ All users can chat and use actions with `/me`.
  * Word filtering support for chat. Not currently necessary but I'm sure it will end up being needed.
  * Rate limiting for message sends in chat. Not currently necessary but I'm sure that it will end up being needed.
  * Better front page with streamer highlights and such.
+ * Better mobile support across the board.
+ * Multiple qualities for stream encoding.
