@@ -5,6 +5,7 @@ import os
 import yaml
 from flask import Flask, Response, abort, jsonify, render_template, request, make_response
 from flask_socketio import SocketIO, join_room  # type: ignore
+from flask_cors import CORS
 from typing import Any, Dict, List, Optional
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -12,6 +13,7 @@ from data import Data
 
 
 app = Flask(__name__)
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins='*')
 config: Dict[str, Any] = {}
 

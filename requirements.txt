@@ -1,5 +1,6 @@
 Flask
 Flask-SocketIO
+Flask-CORS
 gevent
 gevent-websocket
 PyYAML
