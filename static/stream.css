@@ -85,6 +85,11 @@ div.messages, div.blank {
   overflow-y: auto;
 }
 
+div.chat-message {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 div.error {
   color: red;
 }

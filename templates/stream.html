@@ -80,10 +80,35 @@
             var box = $( 'div.messages' );
             var scroll = box[0].scrollTop == box[0].scrollTopMax;
 
-            box.append( inner );
+            box.append( '<div class="chat-message">' + inner + '</div>' );
             if (scroll) {
               box[0].scrollTop = box[0].scrollTopMax;
             }
+          }
+
+          var displayerror = function( error ) {
+            $( 'div.error' ).text( error );
+          }
+
+          var clearerror = function() {
+            $( 'div.error' ).text( "" );
+          }
+
+          var entityMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;',
+            '`': '&#x60;',
+            '=': '&#x3D;'
+          };
+
+          var escapehtml = function( str ) {
+            return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+              return entityMap[s];
+            });
           }
 
           var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
@@ -123,7 +148,7 @@
           }
 
           socket.on( 'connect', function() {
-            $( 'div.error' ).text( '' );
+            clearerror();
             $( '#login' ).on( 'submit', function( e ) {
               e.preventDefault();
 
@@ -143,7 +168,7 @@
           socket.on( 'login key required', function( msg ) {
             username = msg.username;
 
-            $( 'div.error' ).text( '' );
+            clearerror();
             $( '#login' ).remove();
             $( '#admin' ).show();
             $( '#password' ).focus()
@@ -163,7 +188,7 @@
           socket.on( 'login success', function( msg ) {
             username = msg.username;
 
-            $( 'div.error' ).text( '' );
+            clearerror();
             $( '#login' ).remove();
             $( '#admin' ).remove();
             $( '#chat' ).show();
@@ -183,22 +208,22 @@
 
           socket.on( 'connected', function( msg ) {
             if( connected ) {
-              add( '<div><b style="color: #000">'+msg.username+' joined!</b></div>' );
+              add( '<b style="color: #000">' + escapehtml(msg.username) + ' joined!</b>' );
             }
             if( msg.username == username && !connected ) {
-              add( '<div><b style="color: #000">Connected users:</b> '+msg.users.join(', ') +'</div>' );
+              add( '<b style="color: #000">Connected users:</b> ' + escapehtml(msg.users.join(', ')) );
               connected = true;
             }
             users = msg.users;
           })
 
           socket.on( 'server', function( msg ) {
-            add( '<div><b style="color: #f00">'+msg.msg+'</b></div>' );
+            add( '<b style="color: #f00">' + escapehtml(msg.msg) + '</b>' );
           })
 
           socket.on( 'disconnected', function( msg ) {
             if( connected ) {
-              add( '<div><b style="color: #000">'+msg.username+' left!</b></div>' );
+              add( '<b style="color: #000">' + escapehtml(msg.username) + ' left!</b>' );
             }
             users = msg.users;
           })
@@ -206,23 +231,23 @@
           socket.on( 'message received', function( msg ) {
             if( connected ) {
               if( msg.username == username ) {
-                $( 'div.error' ).text( '' );
+                clearerror();
               }
-              add( '<div><b style="color: #000">'+msg.username+':</b> '+msg.message+'</div>' );
+              add( '<b style="color: #000">' + escapehtml(msg.username) + ':</b> ' + escapehtml(msg.message) );
             }
           })
 
           socket.on( 'action received', function( msg ) {
             if( connected ) {
               if( msg.username == username ) {
-                $( 'div.error' ).text( '' );
+                clearerror();
               }
-              add( '<div><b style="color: #000">* '+msg.username+' '+msg.message+'</div>' );
+              add( '<b style="color: #000">* ' + escapehtml(msg.username) + ' ' + escapehtml(msg.message) );
             }
           })
 
           socket.on( 'error', function( msg ) {
-            $( 'div.error' ).text( msg.msg );
+            displayerror( msg.msg );
             console.log( msg.msg );
           } );
 
