@@ -14,3 +14,5 @@ secret_key: 'this_should_be_changed_to_something_long_and_random'
 hls_dir: '/path/to/hls'
 # HLS playlist length in seconds as specified in your nginx configuration.
 hls_playlist_length: 30
+# Supported video qualities, if you are transcoding multiples.
+video_qualities:

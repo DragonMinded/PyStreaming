@@ -3,7 +3,7 @@ import calendar
 import datetime
 import os
 import yaml
-from flask import Flask, Response, abort, jsonify, render_template, request, make_response
+from flask import Flask, Response, abort, jsonify, render_template, request, make_response, url_for
 from flask_socketio import SocketIO, join_room  # type: ignore
 from flask_cors import CORS
 from typing import Any, Dict, List, Optional
@@ -37,6 +37,14 @@ def modified(fname: str) -> int:
     return calendar.timegm(datetime.datetime.utcfromtimestamp(os.path.getmtime(fname)).timetuple())
 
 
+def first_quality() -> Optional[str]:
+    global config
+    qualities = config.get('video_qualities', None)
+    if not qualities:
+        return None
+    return qualities[0]
+
+
 class SocketInfo:
     def __init__(self, sid: Any, ip: str, streamer: str, username: str, admin: bool, moderator: bool, muted: bool) -> None:
         self.sid = sid
@@ -68,10 +76,14 @@ def stream_count(streamer: str) -> int:
     return len([None for x in socket_to_presence.values() if x.streamer == streamer and x.timestamp >= oldest])
 
 
-def stream_live(streamkey: str) -> bool:
+def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
     global config
 
-    m3u8 = os.path.join(config['hls_dir'], streamkey) + '.m3u8'
+    if quality:
+        filename = f"{streamkey}_{quality}.m3u8"
+    else:
+        filename = streamkey + '.m3u8'
+    m3u8 = os.path.join(config['hls_dir'], filename)
     if not os.path.isfile(m3u8):
         # There isn't a playlist file, we aren't live.
         return False
@@ -83,10 +95,14 @@ def stream_live(streamkey: str) -> bool:
     return True
 
 
-def fetch_m3u8(streamkey: str) -> Optional[str]:
+def fetch_m3u8(streamkey: str, quality: Optional[str] = None) -> Optional[str]:
     global config
 
-    m3u8 = os.path.join(config['hls_dir'], streamkey) + '.m3u8'
+    if quality:
+        filename = f"{streamkey}_{quality}"
+    else:
+        filename = streamkey
+    m3u8 = os.path.join(config['hls_dir'], filename) + '.m3u8'
     if not os.path.isfile(m3u8):
         # There isn't a playlist file, we aren't live.
         return None
@@ -124,7 +140,7 @@ def index() -> str:
     streamers = [
         {
             'username': result['username'],
-            'live': stream_live(result['key']), 'count': stream_count(result['username'].lower()),
+            'live': stream_live(result['key'], first_quality()), 'count': stream_count(result['username'].lower()),
             'description': result['description'] if result['description'] else '',
         }
         for result in cursor.fetchall()
@@ -142,7 +158,18 @@ def stream(streamer: str) -> str:
         abort(404)
 
     result = cursor.fetchone()
-    return render_template('stream.html', streamer=result["username"])
+
+    global config
+    qualities = config.get('video_qualities', None)
+    if not qualities:
+        playlists = [{"src": url_for('streamplaylist', streamer=streamer), "label": "live", "type": "application/x-mpegURL"}]
+    else:
+        playlists = [{"src": url_for('streamplaylistwithquality', streamer=streamer, quality=quality), "label": quality, "type": "application/x-mpegURL"} for quality in qualities]
+    return render_template(
+        'stream.html',
+        streamer=result["username"],
+        playlists=playlists,
+    )
 
 
 @app.route('/<streamer>/info')
@@ -157,7 +184,7 @@ def streaminfo(streamer: str) -> Response:
         abort(404)
 
     result = cursor.fetchone()
-    live = stream_live(result['key'])
+    live = stream_live(result['key'], first_quality())
     return jsonify({
         'live': live,
         'count': stream_count(streamer) if live else 0,
@@ -194,6 +221,44 @@ def streamplaylist(streamer: str) -> str:
             newname = f"{streamer}" + lines[i][len(key):]
             symlink(oldname, newname)
             lines[i] = "/hls/" + newname
+        if key in lines[i]:
+            raise Exception("Possible stream key leak!")
+
+    m3u8 = "\n".join(lines)
+    return m3u8
+
+
+@app.route('/<streamer>/playlist/<quality>.m3u8')
+def streamplaylistwithquality(streamer: str, quality: str) -> str:
+    streamer = streamer.lower()
+
+    cursor = mysql().execute(
+        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        abort(404)
+
+    result = cursor.fetchone()
+    key = result['key']
+
+    if not stream_live(key, quality):
+        abort(404)
+
+    m3u8 = fetch_m3u8(key, quality)
+    if m3u8 is None:
+        abort(404)
+
+    lines = m3u8.splitlines()
+    for i in range(len(lines)):
+        if lines[i].startswith(key + '_' + quality) and lines[i][-3:] == ".ts":
+            # We need to rewrite this
+            oldname = lines[i]
+            newname = f"{streamer}_{quality}" + lines[i][(len(key) + len(quality) + 1):]
+            symlink(oldname, newname)
+            lines[i] = "/hls/" + newname
+        if key in lines[i]:
+            raise Exception("Possible stream key leak!")
 
     m3u8 = "\n".join(lines)
     return m3u8
@@ -227,6 +292,11 @@ def publishcheck() -> Response:
         abort(404)
 
     # This is fine, allow it
+    return "Stream ok!", 200
+
+
+@app.route('/auth/on_publish_done', methods=["GET", "POST"])
+def donepublishcheck() -> Response:
     return "Stream ok!", 200
 
 
