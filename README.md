@@ -104,6 +104,7 @@ rtmp {
         # is correct. You should leave this as 127.0.0.1 because nginx should only
         # look on the local host for the auth endpoint.
         on_publish http://127.0.0.1:12345/auth/on_publish;
+        on_publish_done http://127.0.0.1:12345/auth/on_publish_done;
 
         # Create the "/live" endpoint people can stream to.
         application live {
@@ -148,6 +149,117 @@ Make sure your stream key matches what you added using `manage.py` above! If you
 are setting this up on a remote server, substitute the server's public IP for
 `127.0.0.1` in the URL above. If everything is set up right, you should see the
 stream go live on the web interface.
+
+### Transcoding Multiple Qualities
+
+By default, the above setup will deliver a single quality stream to all viewers
+that is based on your source configuration (most-likely in OBS or another streaming
+software). If you want to provide multiple quality streams for viewers with slower
+internet connections you will need to modify your `nginx.conf` as well as your
+`config.yaml` setup. In this alternate configuration you will use ffmpeg to
+translate the incoming stream to multiple streams on the fly. First you will want
+to edit your `nginx.conf` to include a section similar to the following (instead of
+the above simpler config):
+
+```
+rtmp {
+    server {
+        # Standard RTMP port, where OBS expects to send data.
+        listen 1935;
+
+        # Stream chunk size, leave as-is.
+        chunk_size 4096;
+
+        # Create the "/live" endpoint people can stream to.
+        application live {
+            # Allow publishing from any IP. We will use the "on_publish" hook for security.
+            allow publish all;
+
+            # Allow localhost to play this stream back over RTML. This is important as this is
+            # how ffmpeg will transcode the stream.
+            allow play 127.0.0.1;
+
+            # Enable this endpoint.
+            live on;
+
+            # Disable recording to flv files.
+            record off;
+
+            # URL nginx will check when a user tries to stream, to verify the stream key
+            # is correct. You should leave this as 127.0.0.1 because nginx should only
+            # look on the local host for the auth endpoint.
+            on_publish http://127.0.0.1:12345/auth/on_publish;
+            on_publish_done http://127.0.0.1:12345/auth/on_publish_done;
+
+            # Push transcoded streams to the "/hls" endpoint. Feel free to change the
+            # parameters of the various transcoded streams, add or drop them at will.
+            # If you don't wish to include the original quality stream you can drop the
+            # line which copies video/audio to the "/hls" endpoint.
+            exec ffmpeg -i rtmp://127.0.0.1:1935/$app/$name
+            -c copy -f flv rtmp://127.0.0.1:1935/hls/$name_Original
+            -c:v libx264 -acodec copy -b:v 2304k -vf "scale=1080:trunc(ow/a/2)*2" -tune zerolatency -preset veryfast -crf 23 -g 60 -hls_list_size 0 -f flv rtmp://127.0.0.1:1935/hls/$name_1080P
+            -c:v libx264 -acodec copy -b:v 768k -vf "scale=720:trunc(ow/a/2)*2" -tune zerolatency -preset veryfast -crf 23 -g 60 -hls_list_size 0 -f flv rtmp://127.0.0.1:1935/hls/$name_720P
+            -c:v libx264 -acodec copy -b:v 256k -vf "scale=480:trunc(ow/a/2)*2" -tune zerolatency -preset veryfast -crf 23 -g 60 -hls_list_size 0 -f flv rtmp://127.0.0.1:1935/hls/$name_480P;
+        }
+
+        # Create the "/hls" endpoint used by ffmpeg to push transcoded streams.
+        application hls {
+            # Only allow publishing from localhost, specifically from ffmpeg from above.
+            allow publish 127.0.0.1;
+
+            # Deny playback from any IP. This means RTMP clients like VLC cannot connect
+            # directly to the server to watch streams.
+            deny play all;
+
+            # Enable this endpoint.
+            live on;
+
+            # Disable recording to flv files.
+            record off;
+
+            # Enable HLS transcoding. RTMP clients in the browser no longer exist.
+            hls on;
+
+            # Where we will put the HLS files and playlists.
+            hls_path /path/to/hls/;
+
+            # How long each segment should be. If you are experiencing large stream
+            # delays, you can reduce this down to 1s.
+            hls_fragment 3s;
+
+            # How much playback buffer we keep around. If you are experiencing large
+            # stream delays, you can reduce this down to 10s. Be sure to adjust the
+            # hls_playlist_length option in config.yaml to match!
+            hls_playlist_length 30s;
+        }
+    }
+}
+```
+
+You'll notice that compared to the simpler setup, we split the RTMP server into
+two pieces. The first piece handles authentication based on stream key and is the
+endpoint you will stream to. Its responsible for launching ffmpeg to transcode streams.
+The second piece listens for the transcoded streams and is responsible for writing out
+the HLS file fragments that make the whole thing work. In both the simpler and more
+complex setup, you will be pointing your streaming setup at the `/live` RTMP endpoint.
+
+In order for this to work with the streaming frontend you also need to edit your
+`config.yaml` to specify the qualities you support. Without this, it will assume no
+suffix for stream keys and will only work with the simpler `nginx.conf`. For the demo
+`nginx.conf` laid out just above, you will want a similar section in your `config.yaml`
+that looks like the following:
+
+```
+video_qualities:
+    - Original
+    - 1080P
+    - 720P
+    - 480P
+```
+
+Notice that the suffixes we provided after `$name` for the original and transcoded streams
+are all listed here. When you set the software up in this manner, a configuration gear will
+be visible on the stream for viewers where they can choose a quality.
 
 ## Running Behind nginx
 
@@ -289,4 +401,3 @@ All users can chat and use actions with `/me`.
  * Rate limiting for message sends in chat. Not currently necessary but I'm sure that it will end up being needed.
  * Better front page with streamer highlights and such.
  * Better mobile support across the board.
- * Multiple qualities for stream encoding.
