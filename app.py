@@ -132,6 +132,25 @@ def symlink(oldname: str, newname: str) -> None:
         pass
 
 
+def clean_symlinks() -> None:
+    global config
+
+    try:
+        for name in os.listdir(config['hls_dir']):
+            if name not in (os.curdir, os.pardir):
+                full = os.path.join(config['hls_dir'], name)
+                if os.path.islink(full):
+                    real = os.readlink(full)
+                    if not os.path.isfile(real):
+                        # This symlink points at an old file that nginx has removed.
+                        # So, let's clean up!
+                        os.remove(full)
+    except Exception:
+        # We don't want to interrupt playlist fetching due to a failure to
+        # clean. If this happens the stream will pause.
+        pass
+
+
 @app.route('/')
 def index() -> str:
     cursor = mysql().execute(
@@ -183,6 +202,9 @@ def streaminfo(streamer: str) -> Response:
     if cursor.rowcount != 1:
         abort(404)
 
+    # Doesn't cost us much, so let's clean up on the fly.
+    clean_symlinks()
+
     result = cursor.fetchone()
     live = stream_live(result['key'], first_quality())
     return jsonify({
@@ -224,6 +246,9 @@ def streamplaylist(streamer: str) -> str:
         if key in lines[i]:
             raise Exception("Possible stream key leak!")
 
+    # Doesn't cost us much, so let's clean up on the fly.
+    clean_symlinks()
+
     m3u8 = "\n".join(lines)
     return m3u8
 
@@ -259,6 +284,9 @@ def streamplaylistwithquality(streamer: str, quality: str) -> str:
             lines[i] = "/hls/" + newname
         if key in lines[i]:
             raise Exception("Possible stream key leak!")
+
+    # Doesn't cost us much, so let's clean up on the fly.
+    clean_symlinks()
 
     m3u8 = "\n".join(lines)
     return m3u8
