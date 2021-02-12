@@ -86,8 +86,8 @@ div.messages, div.blank {
 }
 
 div.chat-message {
-  overflow-wrap: anywhere;
-  word-break: break-all;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 div.error {
