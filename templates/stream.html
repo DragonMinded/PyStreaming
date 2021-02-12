@@ -87,11 +87,20 @@
 
           var autoscroll = true;
 
+          var scrollTop = function( obj ) {
+            // Sometimes the chrome/firefox calculation of scrollTopMax is off by one
+            return Math.floor(obj.scrollTop) + 1;
+          }
+
+          var scrollTopMax = function( obj ) {
+            return obj.scrollHeight - obj.clientHeight;
+          }
+
           var add = function( inner ) {
             var box = $( 'div.messages' );
             box.append( '<div class="chat-message">' + inner + '</div>' );
             if (autoscroll) {
-              box[0].scrollTop = box[0].scrollTopMax;
+              box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
           }
 
@@ -99,7 +108,7 @@
             var box = $( 'div.messages' );
             $( 'div.error' ).text( error );
             if (autoscroll) {
-              box[0].scrollTop = box[0].scrollTopMax;
+              box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
           }
 
@@ -107,7 +116,7 @@
             var box = $( 'div.messages' );
             $( 'div.error' ).text( "" );
             if (autoscroll) {
-              box[0].scrollTop = box[0].scrollTopMax;
+              box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
           }
 
@@ -163,13 +172,13 @@
 
           $('div.messages').scroll(function() {
             var box = $( 'div.messages' );
-            autoscroll = box[0].scrollTop == box[0].scrollTopMax;
+            autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
           });
 
           $(window).resize(function() {
             var box = $( 'div.messages' );
             if (autoscroll) {
-              box[0].scrollTop = box[0].scrollTopMax;
+              box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
           });
 
