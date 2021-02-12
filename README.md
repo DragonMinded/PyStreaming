@@ -259,7 +259,11 @@ video_qualities:
 
 Notice that the suffixes we provided after `$name` for the original and transcoded streams
 are all listed here. When you set the software up in this manner, a configuration gear will
-be visible on the stream for viewers where they can choose a quality.
+be visible on the stream for viewers where they can choose a quality. You'll want to verify
+with a test stream to ensure that your streaming server can handle the load of transcoding.
+If it can't, you'll notice that all qualities will buffer randomly and your CPU usage will
+be too high for the number of cores. If your server can't keep up, choose fewer transcodes
+and try again.
 
 ## Running Behind nginx
 
