@@ -2,6 +2,7 @@ div.autocomplete {
     position: aboslute;
     margin: 0px;
     border: 1px solid gray;
+    background: #ffffff;
 }
 
 div.autocomplete-element {
@@ -10,6 +11,13 @@ div.autocomplete-element {
     margin: 0px;
 }
 
+div.autocomplete-additional {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0px;
+    text-align: center;
+}
+
 div.autocomplete-element.selected {
-    background: #888888;
+    background: #aaaaaa;
 }

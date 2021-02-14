@@ -20,6 +20,7 @@
       </script>
       <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
       <script src="{{ url_for('static', filename='autocomplete.js') }}"></script>
+      <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
   </head>
 
   <body>
@@ -152,9 +153,14 @@
           };
 
           var escapehtml = function( str ) {
-            return String(str).replace(/[&<>"'`=\/]/g, function (s) {
-              return entityMap[s];
-            });
+            return twemoji.parse(
+              String(str).replace(/[&<>"'`=\/]/g, function (s) {
+                return entityMap[s];
+              }),
+              {
+                  size: 16,
+              },
+            );
           }
 
           var ping = function() {

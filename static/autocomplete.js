@@ -132,11 +132,11 @@ function autocomplete( selector, items ) {
             word = word.toLowerCase();
             matches = items.filter(function(item) {
                 return item.toLowerCase().startsWith(word);
-            }).slice(0, 15);
+            });
 
             if (matches.length > 0)
             {
-                show(matches);
+                show(matches.slice(0, 10), matches.length > 10);
                 return;
             }
         }
@@ -158,7 +158,7 @@ function autocomplete( selector, items ) {
         $('div.autocomplete').remove();
     }
 
-    function show(items) {
+    function show(items, additional) {
         if ($('div.autocomplete').length != 0) {
             hide();
         }
@@ -174,18 +174,26 @@ function autocomplete( selector, items ) {
             }
             $( '<div class="autocomplete-element"></div>' ).text(item).appendTo('div.autocomplete');
         });
+
+        if( additional ) {
+            $('<div class="autocomplete-additional">...</div>').appendTo('div.autocomplete');
+        }
+
         cursordown();
 
         // Position it!
         const offset = $(selector).offset();
-        const width = $(selector).width();
+        const width = $(selector).outerWidth();
         var height = 0;
         $('div.autocomplete-element').each(function(i) {
             height += $(this).height();
         });
+        $('div.autocomplete-additional').each(function(i) {
+            height += $(this).height();
+        });
 
-        $('div.autocomplete').offset({top: offset.top - (height + 1), left:offset.left});
-        $('div.autocomplete').width(width);
+        $('div.autocomplete').offset({top: offset.top - (height + 2), left:offset.left});
+        $('div.autocomplete').width(width - 2);
         $('div.autocomplete').height(height);
     }
 
