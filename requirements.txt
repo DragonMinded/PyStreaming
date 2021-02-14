@@ -7,3 +7,4 @@ PyYAML
 SQLAlchemy
 alembic
 mysqlclient
+emoji

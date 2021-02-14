@@ -1,0 +1,15 @@
+div.autocomplete {
+    position: aboslute;
+    margin: 0px;
+    border: 1px solid gray;
+}
+
+div.autocomplete-element {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0px;
+}
+
+div.autocomplete-element.selected {
+    background: #888888;
+}

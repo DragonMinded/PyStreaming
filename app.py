@@ -1,6 +1,7 @@
 import argparse
 import calendar
 import datetime
+import emoji
 import os
 import yaml
 from flask import Flask, Response, abort, jsonify, render_template, request, make_response, url_for
@@ -184,10 +185,18 @@ def stream(streamer: str) -> str:
         playlists = [{"src": url_for('streamplaylist', streamer=streamer), "label": "live", "type": "application/x-mpegURL"}]
     else:
         playlists = [{"src": url_for('streamplaylistwithquality', streamer=streamer, quality=quality), "label": quality, "type": "application/x-mpegURL"} for quality in qualities]
+
+    emotes={
+        **emoji.EMOJI_UNICODE_ENGLISH,
+        **emoji.EMOJI_ALIAS_UNICODE_ENGLISH,
+    }
+    emotes = {key: emotes[key] for key in emotes if "__" not in key}
+
     return render_template(
         'stream.html',
         streamer=result["username"],
         playlists=playlists,
+        emotes=emotes,
     )
 
 
@@ -421,6 +430,11 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
         socketio.emit('server', {'msg': 'You have admin rights.'}, room=request.sid)
 
 
+def emotes(msg: str) -> str:
+    msg = emoji.emojize(msg, use_aliases=True, variant="emoji_type")
+    return msg
+
+
 @socketio.on('message')
 def handle_message(json, methods=['GET', 'POST']) -> None:
     if 'message' not in json:
@@ -460,7 +474,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                     'message received',
                     {
                         'username': socket_to_info[request.sid].username,
-                        'message': message,
+                        'message': emotes(message),
                     },
                     room=socket_to_info[request.sid].streamer,
                 )
@@ -477,7 +491,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                     'action received',
                     {
                         'username': socket_to_info[request.sid].username,
-                        'message': message,
+                        'message': emotes(message),
                     },
                     room=socket_to_info[request.sid].streamer,
                 )
@@ -674,7 +688,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                 return
 
             streamer = socket_to_info[request.sid].streamer
-            description = message.strip()
+            description = emotes(message.strip())
             mysql().execute(
                 "UPDATE streamersettings SET `description` = :description WHERE `username` = :streamer",
                 {"streamer": streamer, "description": description}
@@ -704,7 +718,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                 'message received',
                 {
                     'username': socket_to_info[request.sid].username,
-                    'message': message,
+                    'message': emotes(message),
                 },
                 room=socket_to_info[request.sid].streamer,
             )

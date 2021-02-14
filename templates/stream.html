@@ -6,6 +6,7 @@
       <link href="{{ url_for('static', filename='stream-vertical.css') }}" media="screen and (max-aspect-ratio: 4/3)" rel="stylesheet" />
       <link href="https://vjs.zencdn.net/7.11.5/video-js.css" rel="stylesheet" />
       <link href="{{ url_for('static', filename='quality-selector.css') }}" rel="stylesheet">
+      <link href="{{ url_for('static', filename='autocomplete.css') }}" rel="stylesheet">
       <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
       <script src="https://vjs.zencdn.net/7.11.5/video.min.js"></script>
       <script src="{{ url_for('static', filename='silvermine-videojs-quality-selector.min.js') }}"></script>
@@ -18,6 +19,7 @@
         )
       </script>
       <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
+      <script src="{{ url_for('static', filename='autocomplete.js') }}"></script>
   </head>
 
   <body>
@@ -76,6 +78,26 @@
             var player = this;
             player.controlBar.addChild('QualitySelector');
           });
+        </script>
+        <script type="text/javascript">
+          var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
+          var username = undefined;
+          var streamer = {{ streamer|tojson|safe }};
+          var playlists = {{ playlists|tojson|safe }};
+          var emotes = {{ emotes|tojson|safe }};
+          var connected = false;
+          var live = false;
+          var autoscroll = true;
+          var users = [];
+
+          var updater = autocomplete('#message', Object.keys(emotes));
+
+          var updateusers = function() {
+              var acusers = users.map(function(user) {
+                  return "@" + user;
+              });
+              updater(Object.keys(emotes).concat(acusers));
+          }
 
           $( '#login' ).on( 'submit', function( e ) {
             e.preventDefault();
@@ -84,8 +106,6 @@
           $( '#chat' ).on( 'submit', function( e ) {
             e.preventDefault();
           } );
-
-          var autoscroll = true;
 
           var scrollTop = function( obj ) {
             // Sometimes the chrome/firefox calculation of scrollTopMax is off by one
@@ -136,14 +156,6 @@
               return entityMap[s];
             });
           }
-
-          var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
-          var username = undefined;
-          var streamer = {{ streamer|tojson|safe }}
-          var playlists = {{ playlists|tojson|safe }}
-          var connected = false;
-          var live = false;
-          var users = [];
 
           var ping = function() {
             socket.emit( 'presence', {
@@ -250,6 +262,7 @@
               connected = true;
             }
             users = msg.users;
+            updateusers();
           })
 
           socket.on( 'server', function( msg ) {
@@ -261,14 +274,46 @@
               add( '<b style="color: #000">' + escapehtml(msg.username) + ' left!</b>' );
             }
             users = msg.users;
+            updateusers();
           })
+
+          var highlight = function(msg) {
+              if( msg.length == 0 ) {
+                  return msg;
+              }
+
+              var chunks = [msg.slice(0, 1)];
+              var pos;
+
+              var isspace = function(str) {
+                  return str.trim().length == 0;
+              }
+
+              for(pos = 1; pos < msg.length; pos++) {
+                  if(isspace(chunks[chunks.length - 1]) == isspace(msg[pos])) {
+                      chunks[chunks.length - 1] += msg[pos];
+                  } else {
+                      chunks.push(msg[pos]);
+                  }
+              }
+
+              chunks = chunks.map(function(entry) {
+                  if(entry.toLowerCase() == username.toLowerCase()) {
+                      return '<span style="color: #f00; font-weight: bold">' + entry + '</span>';
+                  }
+
+                  return entry;
+              });
+
+              return chunks.join('');
+          }
 
           socket.on( 'message received', function( msg ) {
             if( connected ) {
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: #000">' + escapehtml(msg.username) + ':</b> ' + escapehtml(msg.message) );
+              add( '<b style="color: #000">' + escapehtml(msg.username) + ':</b> ' + highlight(escapehtml(msg.message)) );
             }
           })
 
@@ -277,7 +322,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: #000">* ' + escapehtml(msg.username) + ' ' + escapehtml(msg.message) );
+              add( '<b style="color: #000">* ' + escapehtml(msg.username) + ' ' + highlight(escapehtml(msg.message)) );
             }
           })
 
