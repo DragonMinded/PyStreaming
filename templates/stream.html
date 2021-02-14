@@ -173,7 +173,7 @@
             $.get("/" + streamer + "/info", {}, function(response) {
               if (response.live) {
                 $( 'div.stream-count' ).text( 'Number of viewers: ' + response.count );
-                $( 'div.stream-description').text( response.description );
+                $( 'div.stream-description').html( escapehtml(response.description) );
               } else {
                 $( 'div.stream-count' ).text( '' );
                 $( 'div.stream-description').text( '' );

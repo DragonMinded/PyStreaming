@@ -149,7 +149,9 @@ function autocomplete( selector, items ) {
     });
 
     $(window).resize(function() {
-        console.log(displayed);
+        if (displayed) {
+            show();
+        }
     });
 
     function hide() {
