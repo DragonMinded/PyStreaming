@@ -28,6 +28,17 @@ streamersettings = Table(  # type: ignore
 )
 
 
+"""
+Table for storing custom emotes.
+"""
+emotes = Table(  # type: ignore
+    'emotes',
+    metadata,
+    Column('alias', String(64), nullable=False, unique=True),
+    Column('uri', String(512), nullable=False),
+)
+
+
 class DBCreateException(Exception):
     pass
 

@@ -161,7 +161,7 @@ def index() -> str:
         {
             'username': result['username'],
             'live': stream_live(result['key'], first_quality()), 'count': stream_count(result['username'].lower()),
-            'description': result['description'] if result['description'] else '',
+            'description': emotes(result['description']) if result['description'] else '',
         }
         for result in cursor.fetchall()
     ]
@@ -186,16 +186,22 @@ def stream(streamer: str) -> str:
     else:
         playlists = [{"src": url_for('streamplaylistwithquality', streamer=streamer, quality=quality), "label": quality, "type": "application/x-mpegURL"} for quality in qualities]
 
-    emotes={
+    emojis = {
         **emoji.EMOJI_UNICODE_ENGLISH,
         **emoji.EMOJI_ALIAS_UNICODE_ENGLISH,
     }
-    emotes = {key: emotes[key] for key in emotes if "__" not in key}
+    emojis = {key: emojis[key] for key in emojis if "__" not in key}
+
+    cursor = mysql().execute(
+        "SELECT alias, uri FROM emotes ORDER BY alias",
+    )
+    emotes = {f":{result['alias']}:": result['uri'] for result in cursor.fetchall()}
 
     return render_template(
         'stream.html',
         streamer=result["username"],
         playlists=playlists,
+        emojis=emojis,
         emotes=emotes,
     )
 
@@ -219,7 +225,7 @@ def streaminfo(streamer: str) -> Response:
     return jsonify({
         'live': live,
         'count': stream_count(streamer) if live else 0,
-        'description': result['description'] if result['description'] else '',
+        'description': emotes(result['description']) if result['description'] else '',
     })
 
 

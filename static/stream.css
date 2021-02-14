@@ -38,13 +38,11 @@ div.info {
   height: 20px;
   background: #000000;
   color: #eeeeee;
-  text: smaller;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 div.stream-description {
   color: #eeeeee;
-  text: smaller;
   font-family: Arial, Helvetica, sans-serif;
   padding-top: 3px;
 }
@@ -55,7 +53,6 @@ div.stream-padding {
 
 div.stream-count {
   color: #eeeeee;
-  text: smaller;
   font-family: Arial, Helvetica, sans-serif;
   padding-top: 3px;
   padding-right: 5px;
@@ -98,4 +95,12 @@ div.error {
 div.username-prompt {
   padding-bottom: 15px;
   font-style: italic;
+}
+
+img.emote, img.emoji {
+  display: inline-block;
+  max-width: 48px;
+  max-height: 16px;
+  width: auto;
+  height: auto;
 }

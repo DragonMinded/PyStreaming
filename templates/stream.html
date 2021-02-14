@@ -85,19 +85,20 @@
           var username = undefined;
           var streamer = {{ streamer|tojson|safe }};
           var playlists = {{ playlists|tojson|safe }};
+          var emojis = {{ emojis|tojson|safe }};
           var emotes = {{ emotes|tojson|safe }};
           var connected = false;
           var live = false;
           var autoscroll = true;
           var users = [];
 
-          var updater = autocomplete('#message', Object.keys(emotes));
+          var updater = autocomplete('#message', Object.keys(emojis).concat(Object.keys(emotes)));
 
           var updateusers = function() {
               var acusers = users.map(function(user) {
                   return "@" + user;
               });
-              updater(Object.keys(emotes).concat(acusers));
+              updater(Object.keys(emojis).concat(Object.keys(emotes).concat(acusers)));
           }
 
           $( '#login' ).on( 'submit', function( e ) {
@@ -153,14 +154,15 @@
           };
 
           var escapehtml = function( str ) {
-            return twemoji.parse(
-              String(str).replace(/[&<>"'`=\/]/g, function (s) {
-                return entityMap[s];
-              }),
-              {
-                  size: 16,
-              },
-            );
+            str = String(str);
+            str = str.replace(/[&<>"'`=\/]/g, function (s) {
+              return entityMap[s];
+            });
+            str = twemoji.parse(str);
+            Object.keys(emotes).forEach(function(emote) {
+                str = str.replaceAll(emote, "<img src='" + emotes[emote] + "' class='emote' alt='" + emote + "' />");
+            });
+            return str;
           }
 
           var ping = function() {
