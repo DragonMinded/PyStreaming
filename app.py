@@ -437,7 +437,7 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
 
 
 def emotes(msg: str) -> str:
-    msg = emoji.emojize(msg, use_aliases=True, variant="emoji_type")
+    msg = emoji.emojize(msg, use_aliases=True)
     return msg
 
 

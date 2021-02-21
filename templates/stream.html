@@ -316,12 +316,29 @@
               return chunks.join('');
           }
 
+          var embiggen = function(msg) {
+              if( msg.length == 0 ) {
+                  return msg;
+              }
+
+              var domentry = $('<span class="wrapperelement">' + msg + '</span>');
+              var text = domentry.text().trim();
+              if (text.length == 0 && msg.length > 0) {
+                  // Emoji only, embiggen the pictures.
+                  domentry.find('.emoji').addClass('emoji-big').removeClass('emoji');
+                  domentry.find('.emote').addClass('emote-big').removeClass('emote');
+                  return domentry.html();
+              }
+
+              return msg;
+          }
+
           socket.on( 'message received', function( msg ) {
             if( connected ) {
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: #000">' + escapehtml(msg.username) + ':</b> ' + highlight(escapehtml(msg.message)) );
+              add( '<b style="color: #000">' + escapehtml(msg.username) + ':</b> ' + highlight(embiggen(escapehtml(msg.message))) );
             }
           })
 
@@ -330,7 +347,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: #000">* ' + escapehtml(msg.username) + ' ' + highlight(escapehtml(msg.message)) );
+              add( '<b style="color: #000">* ' + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) );
             }
           })
 

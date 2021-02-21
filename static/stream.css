@@ -104,3 +104,11 @@ img.emote, img.emoji {
   width: auto;
   height: auto;
 }
+
+img.emote-big, img.emoji-big {
+  display: inline-block;
+  max-width: 96px;
+  max-height: 32px;
+  width: auto;
+  height: auto;
+}
