@@ -55,6 +55,17 @@
           <div class="blank"></div>
           <div class="username-prompt">choose a user name</div>
           <input type="text" class="username" placeholder="User Name"/>
+          <select name="color" class="color" id="color">
+            <option value="red">red</option>
+            <option value="orange">orange</option>
+            <option value="yellow">yellow</option>
+            <option value="green">green</option>
+            <option value="blue">blue</option>
+            <option value="purple">purple</option>
+            <option value="brown">brown</option>
+            <option value="black" selected>black</option>
+            <option value="white">white</option>
+          </select>
           <input type="submit" value="Connect"/>
           <div class="error"></div>
         </form>
@@ -208,9 +219,11 @@
               e.preventDefault();
 
               username = $( 'input.username' ).val();
+              color = $( 'select.color' ).val();
               socket.emit( 'login', {
                 username : username,
                 streamer : streamer,
+                color : color,
               } );
             } );
 
@@ -263,7 +276,7 @@
 
           socket.on( 'connected', function( msg ) {
             if( connected ) {
-              add( '<b style="color: #000">' + escapehtml(msg.username) + ' joined!</b>' );
+              add( '<b style="color: ' + msg.color + '">' + escapehtml(msg.username) + ' joined!</b>' );
             }
             if( msg.username == username && !connected ) {
               add( '<b style="color: #000">Connected users:</b> ' + escapehtml(msg.users.join(', ')) );
@@ -279,7 +292,7 @@
 
           socket.on( 'disconnected', function( msg ) {
             if( connected ) {
-              add( '<b style="color: #000">' + escapehtml(msg.username) + ' left!</b>' );
+              add( '<b style="color: ' + msg.color + '">' + escapehtml(msg.username) + ' left!</b>' );
             }
             users = msg.users;
             updateusers();
@@ -338,7 +351,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: #000">' + escapehtml(msg.username) + ':</b> ' + highlight(embiggen(escapehtml(msg.message))) );
+              add( '<b style="color: ' + msg.color + '">' + escapehtml(msg.username) + ':</b> ' + highlight(embiggen(escapehtml(msg.message))) );
             }
           })
 
@@ -347,7 +360,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: #000">* ' + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) );
+              add( '<b style="color: ' + msg.color + '">* ' + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) );
             }
           })
 

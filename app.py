@@ -3,6 +3,7 @@ import calendar
 import datetime
 import emoji
 import os
+import webcolors
 import yaml
 from flask import Flask, Response, abort, jsonify, render_template, request, make_response, url_for
 from flask_socketio import SocketIO, join_room  # type: ignore
@@ -47,7 +48,7 @@ def first_quality() -> Optional[str]:
 
 
 class SocketInfo:
-    def __init__(self, sid: Any, ip: str, streamer: str, username: str, admin: bool, moderator: bool, muted: bool) -> None:
+    def __init__(self, sid: Any, ip: str, streamer: str, username: str, admin: bool, moderator: bool, muted: bool, color: int) -> None:
         self.sid = sid
         self.ip = ip
         self.streamer = streamer
@@ -55,6 +56,14 @@ class SocketInfo:
         self.admin = admin
         self.moderator = moderator
         self.muted = muted
+        self.color = color
+
+    @property
+    def htmlcolor(self) -> str:
+        color = hex(self.color)[2:]
+        if len(color) < 6:
+            color = ('0' * (6 - len(color))) + color
+        return '#' + color
 
 
 class PresenceInfo:
@@ -94,6 +103,28 @@ def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
         return False
 
     return True
+
+def get_color(color: str) -> Optional[int]:
+    color = color.strip().lower()
+
+    # Attempt to convert from any color specification to hex.
+    try:
+        color = webcolors.name_to_hex(color)
+    except ValueError:
+        pass
+    try:
+        color = webcolors.normalize_hex(color)
+    except ValueError:
+        pass
+
+    if len(color) != 7 or color[0] != '#':
+        return None
+
+    intval = int(color[1:], 16)
+    if intval < 0 or intval > 0xFFFFFF:
+        return None
+
+    return intval
 
 
 def fetch_m3u8(streamkey: str, quality: Optional[str] = None) -> Optional[str]:
@@ -355,7 +386,7 @@ def disconnect() -> None:
         info = socket_to_info[request.sid]
         del socket_to_info[request.sid]
 
-        socketio.emit('disconnected', {'username': info.username, 'users': users_in_room(info.streamer)}, room=info.streamer)
+        socketio.emit('disconnected', {'username': info.username, 'color': info.htmlcolor, 'users': users_in_room(info.streamer)}, room=info.streamer)
     if request.sid in socket_to_presence:
         del socket_to_presence[request.sid]
 
@@ -390,6 +421,7 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
 
     streamer = json['streamer'].lower()
     username = json['username']
+    color = get_color(json['color'].strip().lower()) or 0
     key = json.get('key', None)
 
     # Update user presence information
@@ -427,10 +459,10 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
             socketio.emit('error', {'msg': 'Username is taken'}, room=request.sid)
             return
 
-    socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin, False, False)
+    socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin, False, False, color)
     join_room(streamer)
     socketio.emit('login success', {'username': json['username']}, room=request.sid)
-    socketio.emit('connected', {'username': json['username'], 'users': users_in_room(streamer)}, room=streamer)
+    socketio.emit('connected', {'username': json['username'], 'color': socket_to_info[request.sid].htmlcolor, 'users': users_in_room(streamer)}, room=streamer)
 
     if admin:
         socketio.emit('server', {'msg': 'You have admin rights.'}, room=request.sid)
@@ -480,6 +512,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                     'message received',
                     {
                         'username': socket_to_info[request.sid].username,
+                        'color': socket_to_info[request.sid].htmlcolor,
                         'message': emotes(message),
                     },
                     room=socket_to_info[request.sid].streamer,
@@ -497,7 +530,29 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                     'action received',
                     {
                         'username': socket_to_info[request.sid].username,
+                        'color': socket_to_info[request.sid].htmlcolor,
                         'message': emotes(message),
+                    },
+                    room=socket_to_info[request.sid].streamer,
+                )
+        elif command in ["/color", "/setcolor"]:
+            # Set the color of your name
+            color = get_color(message.strip().lower())
+
+            if color is None:
+                socketio.emit(
+                    'server',
+                    {'msg': f'Invalid color {message} specified, try a color name or HTML color like #ff00ff.'},
+                    room=request.sid,
+                )
+            else:
+                socket_to_info[request.sid].color = color
+                socketio.emit(
+                    'action received',
+                    {
+                        'username': socket_to_info[request.sid].username,
+                        'color': socket_to_info[request.sid].htmlcolor,
+                        'message': 'changed their color!',
                     },
                     room=socket_to_info[request.sid].streamer,
                 )
@@ -507,6 +562,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                 "/help - show this message",
                 "/users - show the currently chatting users",
                 "/me - perform an action",
+                "/color - set the color of your name in chat",
             ]
             if socket_to_info[request.sid].admin:
                 messages.append("/description <text> - set the stream description")
@@ -724,6 +780,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                 'message received',
                 {
                     'username': socket_to_info[request.sid].username,
+                    'color': socket_to_info[request.sid].htmlcolor,
                     'message': emotes(message),
                 },
                 room=socket_to_info[request.sid].streamer,

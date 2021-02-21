@@ -8,3 +8,4 @@ SQLAlchemy
 alembic
 mysqlclient
 emoji
+webcolors
