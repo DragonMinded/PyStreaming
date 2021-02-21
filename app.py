@@ -536,26 +536,33 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
                     room=socket_to_info[request.sid].streamer,
                 )
         elif command in ["/color", "/setcolor"]:
-            # Set the color of your name
-            color = get_color(message.strip().lower())
-
-            if color is None:
+            if socket_to_info[request.sid].muted:
                 socketio.emit(
                     'server',
-                    {'msg': f'Invalid color {message} specified, try a color name or HTML color like #ff00ff.'},
+                    {'msg': "You are muted!"},
                     room=request.sid,
                 )
             else:
-                socket_to_info[request.sid].color = color
-                socketio.emit(
-                    'action received',
-                    {
-                        'username': socket_to_info[request.sid].username,
-                        'color': socket_to_info[request.sid].htmlcolor,
-                        'message': 'changed their color!',
-                    },
-                    room=socket_to_info[request.sid].streamer,
-                )
+                # Set the color of your name
+                color = get_color(message.strip().lower())
+
+                if color is None:
+                    socketio.emit(
+                        'server',
+                        {'msg': f'Invalid color {message} specified, try a color name or HTML color like #ff00ff.'},
+                        room=request.sid,
+                    )
+                else:
+                    socket_to_info[request.sid].color = color
+                    socketio.emit(
+                        'action received',
+                        {
+                            'username': socket_to_info[request.sid].username,
+                            'color': socket_to_info[request.sid].htmlcolor,
+                            'message': 'changed their color!',
+                        },
+                        room=socket_to_info[request.sid].streamer,
+                    )
         elif command in ["/help"]:
             messages = [
                 "The following commands are recognized:",
