@@ -1,3 +1,4 @@
+wheel
 Flask
 Flask-SocketIO
 Flask-CORS
@@ -9,3 +10,5 @@ alembic
 mysqlclient
 emoji
 webcolors
+mypy
+sqlalchemy-stubs

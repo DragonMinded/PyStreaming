@@ -104,6 +104,7 @@ def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
 
     return True
 
+
 def get_color(color: str) -> Optional[int]:
     color = color.strip().lower()
 

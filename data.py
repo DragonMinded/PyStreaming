@@ -6,8 +6,7 @@ from alembic.migration import MigrationContext  # type: ignore
 from alembic.autogenerate import compare_metadata  # type: ignore
 from sqlalchemy import Table, Column, MetaData, create_engine  # type: ignore
 from sqlalchemy.orm import scoped_session, sessionmaker  # type: ignore
-from sqlalchemy.engine import Engine  # type: ignore
-from sqlalchemy.engine.result import ResultProxy  # type: ignore
+from sqlalchemy.engine import Engine, Result  # type: ignore
 from sqlalchemy.sql import text  # type: ignore
 from sqlalchemy.exc import ProgrammingError  # type: ignore
 from sqlalchemy.types import String  # type: ignore
@@ -25,6 +24,7 @@ streamersettings = Table(  # type: ignore
     Column('username', String(256), nullable=False, unique=True),
     Column('key', String(256), nullable=False, unique=True),
     Column('description', String(512)),
+    Column('streampass', String(256)),
 )
 
 
@@ -161,7 +161,7 @@ class Data:
             self.__session.close()
             self.__session = None
 
-    def execute(self, sql: str, params: Optional[Dict[str, Any]] = None, safe_write_operation: bool = False) -> ResultProxy:
+    def execute(self, sql: str, params: Optional[Dict[str, Any]] = None, safe_write_operation: bool = False) -> Result:
         """
         Given a SQL string and some parameters, execute the query and return the result.
 
@@ -170,7 +170,7 @@ class Data:
             params - Dictionary of parameters which will be substituted into the sql string.
 
         Returns:
-            A SQLAlchemy ResultProxy object.
+            A SQLAlchemy Result object.
         """
         if self.__config['database'].get('read_only', False):
             # See if this is an insert/update/delete
