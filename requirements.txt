@@ -13,3 +13,4 @@ webcolors
 mypy
 sqlalchemy-stubs
 types-emoji
+types-pyyaml

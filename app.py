@@ -5,7 +5,7 @@ import emoji
 import os
 import webcolors  # type: ignore
 import yaml
-from flask import Flask, Request, Response, abort, jsonify, render_template, request as base_request, make_response, url_for
+from flask import Flask, Request, Response, abort, jsonify, render_template, request as base_request, redirect, make_response, url_for
 from flask_socketio import SocketIO, join_room  # type: ignore
 from flask_cors import CORS  # type: ignore
 from typing import Any, Dict, List, Optional, cast
@@ -21,7 +21,7 @@ config: Dict[str, Any] = {}
 
 
 # A quick hack to teach mypy about the valid SID parameter.
-class StreamingRequest(Request):
+class StreamingRequest(Request):  # type: ignore
     sid: Any
 
 
@@ -205,7 +205,7 @@ def index() -> str:
             'username': result['username'],
             'live': stream_live(result['key'], first_quality()), 'count': stream_count(result['username'].lower()),
             'description': emotes(result['description']) if result['description'] else '',
-            'locked': result['streampass'] != None,
+            'locked': result['streampass'] is not None,
         }
         for result in cursor.fetchall()
     ]
@@ -213,9 +213,9 @@ def index() -> str:
 
 
 @app.route('/<streamer>/')
-def stream(streamer: str) -> str:
+def stream(streamer: str) -> Response:
     cursor = mysql().execute(
-        "SELECT username FROM streamersettings WHERE username = :username",
+        "SELECT username, streampass FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
     if cursor.rowcount != 1:
@@ -223,6 +223,18 @@ def stream(streamer: str) -> str:
 
     result = cursor.fetchone()
 
+    streampass = result['streampass']
+    if streampass is not None and request.cookies.get('streampass') != streampass:
+        # This stream is password protected!
+        return make_response(
+            render_template(
+                'password.html',
+                streamer=result["username"],
+            ),
+            403
+        )
+
+    # The stream is either not password protected, or the user has already authenticated.
     global config
     qualities = config.get('video_qualities', None)
     if not qualities:
@@ -241,12 +253,45 @@ def stream(streamer: str) -> str:
     )
     emotes = {f":{result['alias']}:": result['uri'] for result in cursor.fetchall()}
 
-    return render_template(
-        'stream.html',
-        streamer=result["username"],
-        playlists=playlists,
-        emojis=emojis,
-        emotes=emotes,
+    return make_response(
+        render_template(
+            'stream.html',
+            streamer=result["username"],
+            playlists=playlists,
+            emojis=emojis,
+            emotes=emotes,
+        )
+    )
+
+
+@app.route('/<streamer>/password', methods=["POST"])
+def password(streamer: str) -> Response:
+    streamer = streamer.lower()
+    cursor = mysql().execute(
+        "SELECT `username`, `streampass` FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        abort(404)
+
+    # Verify the password.
+    result = cursor.fetchone()
+    streampass = result['streampass']
+    if request.form.get('streampass') == streampass:
+        expire_date = datetime.datetime.now()
+        expire_date = expire_date + datetime.timedelta(days=1)
+        response = make_response(redirect(url_for("stream", streamer=result["username"])))
+        response.set_cookie("streampass", streampass, expires=expire_date)
+        return response
+
+    # Wrong password bucko!
+    return make_response(
+        render_template(
+            'password.html',
+            streamer=result["username"],
+            password_invalid=True,
+        ),
+        403
     )
 
 
@@ -255,7 +300,7 @@ def streaminfo(streamer: str) -> Response:
     streamer = streamer.lower()
 
     cursor = mysql().execute(
-        "SELECT `username`, `key`, `description` FROM streamersettings WHERE username = :username",
+        "SELECT `username`, `streampass`, `key`, `description` FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
     if cursor.rowcount != 1:
@@ -265,6 +310,14 @@ def streaminfo(streamer: str) -> Response:
     clean_symlinks()
 
     result = cursor.fetchone()
+
+    # First, verify they're even allowed to see this stream.
+    streampass = result['streampass']
+    if streampass is not None and request.cookies.get('streampass') != streampass:
+        # This stream is password protected!
+        abort(403)
+
+    # The stream is either not password protected, or the user has already authenticated.
     live = stream_live(result['key'], first_quality())
     return make_response(jsonify({
         'live': live,
@@ -278,13 +331,21 @@ def streamplaylist(streamer: str) -> str:
     streamer = streamer.lower()
 
     cursor = mysql().execute(
-        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        "SELECT `username`, `streampass`, `key` FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
     if cursor.rowcount != 1:
         abort(404)
 
     result = cursor.fetchone()
+
+    # First ensure they're even allowed to see this stream.
+    streampass = result['streampass']
+    if streampass is not None and request.cookies.get('streampass') != streampass:
+        # This stream is password protected!
+        abort(403)
+
+    # The stream is either not password protected, or the user has already authenticated.
     key = result['key']
 
     if not stream_live(key):
@@ -317,13 +378,21 @@ def streamplaylistwithquality(streamer: str, quality: str) -> str:
     streamer = streamer.lower()
 
     cursor = mysql().execute(
-        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        "SELECT `username`, `streampass`, `key` FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
     if cursor.rowcount != 1:
         abort(404)
 
     result = cursor.fetchone()
+
+    # First ensure they're even allowed to see this stream.
+    streampass = result['streampass']
+    if streampass is not None and request.cookies.get('streampass') != streampass:
+        # This stream is password protected!
+        abort(403)
+
+    # The stream is either not password protected, or the user has already authenticated.
     key = result['key']
 
     if not stream_live(key, quality):
@@ -359,7 +428,7 @@ def streamts(filename: str) -> Response:
         abort(404)
 
     response = make_response(ts)
-    response.headers.set('Content-Type', 'video/mp2t')  # type: ignore
+    response.headers.set('Content-Type', 'video/mp2t')
     return response
 
 
@@ -622,7 +691,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             if cursor.rowcount != 1:
                 socketio.emit(
                     'server',
-                    {'msg': f"Error looking up settings!"},
+                    {'msg': "Error looking up settings!"},
                     room=request.sid,
                 )
             else:
@@ -641,7 +710,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 else:
                     socketio.emit(
                         'server',
-                        {'msg': f"No stream password"},
+                        {'msg': "No stream password"},
                         room=request.sid,
                     )
         elif command in ["/mute", "/quiet"]:
@@ -842,8 +911,17 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     room=request.sid,
                 )
                 socketio.emit(
+                    'password set',
+                    {
+                        "password": message,
+                    },
+                    room=request.sid,
+                )
+                socketio.emit(
                     'password activated',
-                    {},
+                    {
+                        "username": streamer,
+                    },
                     room=socket_to_info[request.sid].streamer,
                 )
             else:
@@ -858,7 +936,10 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 )
                 socketio.emit(
                     'password deactivated',
-                    {},
+                    {
+                        "username": streamer,
+                        "msg": "Stream password has been removed.",
+                    },
                     room=socket_to_info[request.sid].streamer,
                 )
         else:

@@ -4,12 +4,12 @@ from typing import Any, Dict, Optional
 import alembic.config
 from alembic.migration import MigrationContext
 from alembic.autogenerate import compare_metadata  # type: ignore
-from sqlalchemy import Table, Column, MetaData, create_engine  # type: ignore
-from sqlalchemy.orm import scoped_session, sessionmaker  # type: ignore
+from sqlalchemy import Table, Column, MetaData, create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.engine import Engine, Result  # type: ignore
-from sqlalchemy.sql import text  # type: ignore
-from sqlalchemy.exc import ProgrammingError  # type: ignore
-from sqlalchemy.types import String  # type: ignore
+from sqlalchemy.sql import text
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.types import String
 
 
 metadata = MetaData()
@@ -64,7 +64,7 @@ class Data:
             autocommit=True,
         )
         self.__config = config
-        self.__session = scoped_session(session_factory)
+        self.__session: Optional[scoped_session] = scoped_session(session_factory)
         self.__url = Data.sqlalchemy_url(config)
 
     @classmethod
@@ -80,11 +80,14 @@ class Data:
 
     def __exists(self) -> bool:
         # See if the DB was already created
-        try:
-            cursor = self.__session.execute(text('SELECT COUNT(version_num) AS count FROM alembic_version'))
-            return bool(cursor.fetchone()['count'] == 1)
-        except ProgrammingError:
-            return False
+        if self.__session is not None:
+            try:
+                cursor = self.__session.execute(text('SELECT COUNT(version_num) AS count FROM alembic_version'))
+                return bool(cursor.fetchone()['count'] == 1)
+            except ProgrammingError:
+                return False
+        else:
+            raise Exception("Our connection to the DB was closed!")
 
     def __alembic_cmd(self, command: str, *args: str) -> None:
         base_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), './')
@@ -181,7 +184,10 @@ class Data:
             ]:
                 if write_statement in sql.lower() and not safe_write_operation:
                     raise Exception('Read-only mode is active!')
-        return self.__session.execute(
-            text(sql),
-            params if params is not None else {},
-        )
+        if self.__session is not None:
+            return self.__session.execute(
+                text(sql),
+                params if params is not None else {},
+            )
+        else:
+            raise Exception("Our connection to the DB was closed!")

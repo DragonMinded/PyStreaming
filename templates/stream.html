@@ -198,6 +198,11 @@
                 videojs.players['my-video'].src(playlists);
                 videojs.players['my-video'].load();
               }
+            } ).fail(function(response) {
+              if (response.status == 403) {
+                // Stream password was turned on, we don't have access.
+                location.reload();
+              }
             } );
           }
 
@@ -229,8 +234,8 @@
 
             ping();
             info();
-            setInterval(ping, 10000);
-            setInterval(info, 10000);
+            setInterval(ping, 5000);
+            setInterval(info, 5000);
           } );
 
           socket.on( 'login key required', function( msg ) {
@@ -347,6 +352,20 @@
               return msg;
           }
 
+          var setCookie = function(name,value,days) {
+              var expires = "";
+              if (days) {
+                  var date = new Date();
+                  date.setTime(date.getTime() + (days*24*60*60*1000));
+                  expires = "; expires=" + date.toUTCString();
+              }
+              document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+          }
+
+          var getCookie = function(name) {
+            return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop() || ''
+          }
+
           socket.on( 'message received', function( msg ) {
             if( connected ) {
               if( msg.username == username ) {
@@ -362,6 +381,35 @@
                 clearerror();
               }
               add( '<b style="color: ' + msg.color + '">* ' + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) );
+            }
+          })
+
+          socket.on( 'password activated', function( msg ) {
+            if( msg.username.toLowerCase() != username.toLowerCase() ) {
+              // Kick all users so that they must enter the stream password. Don't kick the admin since
+              // its possible to pass the password back to them as they just set it. Also, if we already
+              // have the correct password saved (stream was re-passworded with same password), don't refresh
+              // and instead display a message.
+              $.get("/" + streamer + "/info", {}, function(response) {
+                add( '<b style="color: #f00">' + escapehtml("Stream password has beeen set to \"" + getCookie("streampass") + "\"!") + '</b>' );
+              } ).fail(function(response) {
+                if (response.status == 403) {
+                  location.reload();
+                }
+              } );
+            }
+          })
+
+          socket.on( 'password set', function( msg ) {
+            // Normally only sent to the admin that set thet password, so lets make sure they
+            // don't get prompted for basically forever.
+            setCookie("streampass", msg.password, 1024);
+          })
+
+          socket.on( 'password deactivated', function( msg ) {
+            if( msg.username.toLowerCase() != username.toLowerCase() ) {
+              // Show the password being deactivated to everyone else but the admin.
+              add( '<b style="color: #f00">' + escapehtml(msg.msg) + '</b>' );
             }
           })
 
