@@ -3,12 +3,12 @@ import calendar
 import datetime
 import emoji
 import os
-import webcolors
+import webcolors  # type: ignore
 import yaml
-from flask import Flask, Response, abort, jsonify, render_template, request, make_response, url_for
+from flask import Flask, Request, Response, abort, jsonify, render_template, request as base_request, make_response, url_for
 from flask_socketio import SocketIO, join_room  # type: ignore
-from flask_cors import CORS
-from typing import Any, Dict, List, Optional
+from flask_cors import CORS  # type: ignore
+from typing import Any, Dict, List, Optional, cast
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from data import Data
@@ -18,6 +18,14 @@ app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins='*')
 config: Dict[str, Any] = {}
+
+
+# A quick hack to teach mypy about the valid SID parameter.
+class StreamingRequest(Request):
+    sid: Any
+
+
+request: StreamingRequest = cast(StreamingRequest, base_request)
 
 
 def mysql() -> Data:
@@ -44,7 +52,10 @@ def first_quality() -> Optional[str]:
     qualities = config.get('video_qualities', None)
     if not qualities:
         return None
-    return qualities[0]
+    firstq = qualities[0]
+    if isinstance(firstq, str):
+        return firstq
+    return None
 
 
 class SocketInfo:
@@ -219,8 +230,8 @@ def stream(streamer: str) -> str:
         playlists = [{"src": url_for('streamplaylistwithquality', streamer=streamer, quality=quality), "label": quality, "type": "application/x-mpegURL"} for quality in qualities]
 
     emojis = {
-        **emoji.get_emoji_unicode_dict('en'),
-        **emoji.get_aliases_unicode_dict(),
+        **emoji.get_emoji_unicode_dict('en'),  # type: ignore
+        **emoji.get_aliases_unicode_dict(),  # type: ignore
     }
     emojis = {key: emojis[key] for key in emojis if "__" not in key}
 
@@ -254,11 +265,11 @@ def streaminfo(streamer: str) -> Response:
 
     result = cursor.fetchone()
     live = stream_live(result['key'], first_quality())
-    return jsonify({
+    return make_response(jsonify({
         'live': live,
         'count': stream_count(streamer) if live else 0,
         'description': emotes(result['description']) if result['description'] else '',
-    })
+    }))
 
 
 @app.route('/<streamer>/playlist.m3u8')
@@ -340,14 +351,14 @@ def streamplaylistwithquality(streamer: str, quality: str) -> str:
 
 
 @app.route('/hls/<filename>')
-def streamts(filename: str) -> bytes:
+def streamts(filename: str) -> Response:
     # This is a debugging endpoint only, your production nginx setup should handle this.
     ts = fetch_ts(filename)
     if ts is None:
         abort(404)
 
     response = make_response(ts)
-    response.headers.set('Content-Type', 'video/mp2t')
+    response.headers.set('Content-Type', 'video/mp2t')  # type: ignore
     return response
 
 
@@ -367,21 +378,21 @@ def publishcheck() -> Response:
         abort(404)
 
     # This is fine, allow it
-    return "Stream ok!", 200
+    return make_response("Stream ok!", 200)
 
 
 @app.route('/auth/on_publish_done', methods=["GET", "POST"])
 def donepublishcheck() -> Response:
-    return "Stream ok!", 200
+    return make_response("Stream ok!", 200)
 
 
-@socketio.on('connect')
+@socketio.on('connect')  # type: ignore
 def connect() -> None:
     if request.sid in socket_to_info:
         del socket_to_info[request.sid]
 
 
-@socketio.on('disconnect')
+@socketio.on('disconnect')  # type: ignore
 def disconnect() -> None:
     if request.sid in socket_to_info:
         info = socket_to_info[request.sid]
@@ -392,8 +403,8 @@ def disconnect() -> None:
         del socket_to_presence[request.sid]
 
 
-@socketio.on('presence')
-def handle_presence(json, methods=['GET', 'POST']) -> None:
+@socketio.on('presence')  # type: ignore
+def handle_presence(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
     if 'streamer' not in json:
         return
 
@@ -402,8 +413,8 @@ def handle_presence(json, methods=['GET', 'POST']) -> None:
     socket_to_presence[request.sid] = PresenceInfo(request.sid, streamer)
 
 
-@socketio.on('login')
-def handle_login(json, methods=['GET', 'POST']) -> None:
+@socketio.on('login')  # type: ignore
+def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
     if request.sid in socket_to_info:
         socketio.emit('error', {'msg': 'SID already taken?'}, room=request.sid)
         return
@@ -473,8 +484,8 @@ def emotes(msg: str) -> str:
     return emoji.emojize(emoji.emojize(msg, language="alias"), language="en")
 
 
-@socketio.on('message')
-def handle_message(json, methods=['GET', 'POST']) -> None:
+@socketio.on('message')  # type: ignore
+def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
     if 'message' not in json:
         socketio.emit('error', {'msg': 'Message mssing from JSON?'}, room=request.sid)
         return
@@ -797,7 +808,7 @@ def handle_message(json, methods=['GET', 'POST']) -> None:
 def load_config(filename: str) -> None:
     global config
 
-    config.update(yaml.safe_load(open(filename)))  # type: ignore
+    config.update(yaml.safe_load(open(filename)))
     config['database']['engine'] = Data.create_engine(config)
     app.secret_key = config['secret_key']
 
@@ -813,5 +824,5 @@ if __name__ == '__main__':
     load_config(args.config)
 
     if args.nginx_proxy > 0:
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_host=args.nginx_proxy, x_proto=args.nginx_proxy, x_for=args.nginx_proxy)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_host=args.nginx_proxy, x_proto=args.nginx_proxy, x_for=args.nginx_proxy)  # type: ignore
     socketio.run(app, host='0.0.0.0', port=args.port, debug=args.debug)

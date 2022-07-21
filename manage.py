@@ -1,6 +1,6 @@
 import argparse
 import sys
-import yaml  # type: ignore
+import yaml
 from typing import Any, Dict, Optional
 
 from data import Data, DBCreateException
@@ -157,7 +157,7 @@ def main() -> None:
     parser.add_argument("-c", "--config", help="Core configuration. Defaults to config.yaml", type=str, default="config.yaml")
     args = parser.parse_args()
 
-    config = yaml.safe_load(open(args.config))  # type: ignore
+    config = yaml.safe_load(open(args.config))
     config['database']['engine'] = Data.create_engine(config)
     try:
         if args.operation == "create":

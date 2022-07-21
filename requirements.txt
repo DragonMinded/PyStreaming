@@ -12,3 +12,4 @@ emoji
 webcolors
 mypy
 sqlalchemy-stubs
+types-emoji

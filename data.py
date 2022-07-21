@@ -1,8 +1,8 @@
 import os
 from typing import Any, Dict, Optional
 
-import alembic.config  # type: ignore
-from alembic.migration import MigrationContext  # type: ignore
+import alembic.config
+from alembic.migration import MigrationContext
 from alembic.autogenerate import compare_metadata  # type: ignore
 from sqlalchemy import Table, Column, MetaData, create_engine  # type: ignore
 from sqlalchemy.orm import scoped_session, sessionmaker  # type: ignore
@@ -18,7 +18,7 @@ metadata = MetaData()
 """
 Table for storing streamer settings.
 """
-streamersettings = Table(  # type: ignore
+streamersettings = Table(
     'streamersettings',
     metadata,
     Column('username', String(256), nullable=False, unique=True),
@@ -31,7 +31,7 @@ streamersettings = Table(  # type: ignore
 """
 Table for storing custom emotes.
 """
-emotes = Table(  # type: ignore
+emotes = Table(
     'emotes',
     metadata,
     Column('alias', String(64), nullable=False, unique=True),
@@ -73,7 +73,7 @@ class Data:
 
     @classmethod
     def create_engine(cls, config: Dict[str, Any]) -> Engine:
-        return create_engine(  # type: ignore
+        return create_engine(
             Data.sqlalchemy_url(config),
             pool_recycle=3600,
         )
@@ -82,7 +82,7 @@ class Data:
         # See if the DB was already created
         try:
             cursor = self.__session.execute(text('SELECT COUNT(version_num) AS count FROM alembic_version'))
-            return (cursor.fetchone()['count'] == 1)
+            return bool(cursor.fetchone()['count'] == 1)
         except ProgrammingError:
             return False
 
@@ -99,7 +99,7 @@ class Data:
         ]
         alembicArgs.extend(args)
         os.chdir(base_dir)
-        alembic.config.main(argv=alembicArgs)
+        alembic.config.main(argv=alembicArgs)  # type: ignore
 
     def create(self) -> None:
         """
@@ -109,7 +109,7 @@ class Data:
             # Cowardly refused to do anything, we should be using the upgrade path instead.
             raise DBCreateException('Tables already created, use upgrade to upgrade schema!')
 
-        metadata.create_all(  # type: ignore
+        metadata.create_all(
             self.__config['database']['engine'].connect(),
             checkfirst=True,
         )
@@ -181,7 +181,7 @@ class Data:
             ]:
                 if write_statement in sql.lower() and not safe_write_operation:
                     raise Exception('Read-only mode is active!')
-        return self.__session.execute(  # type: ignore
+        return self.__session.execute(
             text(sql),
             params if params is not None else {},
         )
