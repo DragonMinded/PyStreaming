@@ -219,8 +219,8 @@ def stream(streamer: str) -> str:
         playlists = [{"src": url_for('streamplaylistwithquality', streamer=streamer, quality=quality), "label": quality, "type": "application/x-mpegURL"} for quality in qualities]
 
     emojis = {
-        **emoji.EMOJI_UNICODE_ENGLISH,
-        **emoji.EMOJI_ALIAS_UNICODE_ENGLISH,
+        **emoji.get_emoji_unicode_dict('en'),
+        **emoji.get_aliases_unicode_dict(),
     }
     emojis = {key: emojis[key] for key in emojis if "__" not in key}
 
@@ -470,8 +470,7 @@ def handle_login(json, methods=['GET', 'POST']) -> None:
 
 
 def emotes(msg: str) -> str:
-    msg = emoji.emojize(msg, use_aliases=True)
-    return msg
+    return emoji.emojize(emoji.emojize(msg, language="alias"), language="en")
 
 
 @socketio.on('message')
