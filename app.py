@@ -198,13 +198,14 @@ def clean_symlinks() -> None:
 @app.route('/')
 def index() -> str:
     cursor = mysql().execute(
-        "SELECT `username`, `key`, `description` FROM streamersettings",
+        "SELECT `username`, `key`, `description`, `streampass` FROM streamersettings",
     )
     streamers = [
         {
             'username': result['username'],
             'live': stream_live(result['key'], first_quality()), 'count': stream_count(result['username'].lower()),
             'description': emotes(result['description']) if result['description'] else '',
+            'locked': result['streampass'] != None,
         }
         for result in cursor.fetchall()
     ]
@@ -583,7 +584,9 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 "/color - set the color of your name in chat",
             ]
             if socket_to_info[request.sid].admin:
+                messages.append("/settings - display all stream settings")
                 messages.append("/description <text> - set the stream description")
+                messages.append("/password [<text>] - set or unset the stream password")
                 messages.append("/mod <user> - grant moderator privileges to user")
                 messages.append("/demod <user> - revoke moderator privileges to user")
             if socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator:
@@ -602,6 +605,45 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 {'msg': 'Users in chat: ' + ", ".join(users_in_room(socket_to_info[request.sid].streamer))},
                 room=request.sid,
             )
+        elif command in ["/settings"]:
+            if not socket_to_info[request.sid].admin:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            streamer = socket_to_info[request.sid].streamer
+            cursor = mysql().execute(
+                "SELECT `description`, `streampass` FROM streamersettings WHERE `username` = :streamer",
+                {"streamer": streamer}
+            )
+            if cursor.rowcount != 1:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Error looking up settings!"},
+                    room=request.sid,
+                )
+            else:
+                result = cursor.fetchone()
+                socketio.emit(
+                    'server',
+                    {'msg': f"Description: {result['description']}"},
+                    room=request.sid,
+                )
+                if result['streampass']:
+                    socketio.emit(
+                        'server',
+                        {'msg': f"Stream password: {result['streampass']}"},
+                        room=request.sid,
+                    )
+                else:
+                    socketio.emit(
+                        'server',
+                        {'msg': f"No stream password"},
+                        room=request.sid,
+                    )
         elif command in ["/mute", "/quiet"]:
             if not (socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator):
                 socketio.emit(
@@ -779,6 +821,46 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 {'msg': "Stream description updated!"},
                 room=request.sid,
             )
+        elif command in ["/password"]:
+            if not socket_to_info[request.sid].admin:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            streamer = socket_to_info[request.sid].streamer
+            if message:
+                mysql().execute(
+                    "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer",
+                    {"streamer": streamer, "password": message}
+                )
+                socketio.emit(
+                    'server',
+                    {'msg': f"Stream password set to \"{message}\"!"},
+                    room=request.sid,
+                )
+                socketio.emit(
+                    'password activated',
+                    {},
+                    room=socket_to_info[request.sid].streamer,
+                )
+            else:
+                mysql().execute(
+                    "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer",
+                    {"streamer": streamer, "password": None}
+                )
+                socketio.emit(
+                    'server',
+                    {'msg': "Stream password removed!"},
+                    room=request.sid,
+                )
+                socketio.emit(
+                    'password deactivated',
+                    {},
+                    room=socket_to_info[request.sid].streamer,
+                )
         else:
             socketio.emit(
                 'server',

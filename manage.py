@@ -69,6 +69,17 @@ def streamdescription(config: Dict[str, Any], username: Optional[str], descripti
     data.close()
 
 
+def streampassword(config: Dict[str, Any], username: Optional[str], password: Optional[str]) -> None:
+    if username is None:
+        raise Exception('Please provide a username!')
+    data = Data(config)
+    data.execute(
+        "UPDATE streamersettings SET streampass = :password WHERE username = :username",
+        {'username': username, 'password': password},
+    )
+    data.close()
+
+
 def addemote(config: Dict[str, Any], alias: Optional[str], uri: Optional[str]) -> None:
     if alias is None:
         raise Exception('Please provide an alias!')
@@ -109,7 +120,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="A utility for initializing and updating the streaming backend DB.")
     parser.add_argument(
         "operation",
-        help="Operation to perform, options include 'create', 'generate', 'upgrade', 'addstreamer', 'dropstreamer', 'liststreamers', 'streamdescription', 'addemote', 'dropemote', 'listemotes'.",
+        help="Operation to perform, options include 'create', 'generate', 'upgrade', 'addstreamer', 'dropstreamer', 'liststreamers', 'streamdescription', 'streampassword', 'addemote', 'dropemote', 'listemotes'.",
         type=str,
     )
     parser.add_argument(
@@ -127,7 +138,7 @@ def main() -> None:
     parser.add_argument(
         "-u",
         "--username",
-        help="Streamer username to use when adding or dropping a streamer.",
+        help="Streamer username to use when adding or dropping a streamer and when updating the streamer description or password.",
         type=str,
     )
     parser.add_argument(
@@ -151,9 +162,22 @@ def main() -> None:
     parser.add_argument(
         "-d",
         "--description",
-        help="Description for streamer page.",
+        help="Provide the description for streamer page when setting the streamer description.",
         type=str,
     )
+    parser.add_argument(
+        "-p",
+        "--password",
+        help="Provide the password for streamer page when setting the streamer password.",
+        type=str,
+    )
+    parser.add_argument(
+        "-n",
+        "--no-password",
+        help="Unset the password for streamer page when setting the streamer password.",
+        action="store_true",
+    )
+
     parser.add_argument("-c", "--config", help="Core configuration. Defaults to config.yaml", type=str, default="config.yaml")
     args = parser.parse_args()
 
@@ -174,6 +198,8 @@ def main() -> None:
             liststreamers(config)
         elif args.operation == "streamdescription":
             streamdescription(config, args.username, args.description)
+        elif args.operation == "streampassword":
+            streampassword(config, args.username, None if args.no_password else args.password)
         elif args.operation == "addemote":
             addemote(config, args.alias, args.uri)
         elif args.operation == "dropemote":
