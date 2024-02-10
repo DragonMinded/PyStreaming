@@ -95,6 +95,12 @@
           <div class="error"></div>
         </form>
 
+        <div class="emote-preload" style="display: none">
+          {% for _, uri in emotes.items() %}
+            <img src="{{uri}}" />
+          {% endfor %}
+        </div>
+
         <script type="text/javascript">
           videojs("my-video").ready(function(){
             var player = this;
