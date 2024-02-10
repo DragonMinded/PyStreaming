@@ -56,25 +56,23 @@
           <div class="username-prompt">choose a user name</div>
           <input type="text" class="username" placeholder="User Name"/>
           <select name="color" class="color" id="color">
-            <option value="salmon" style="font-weight:bold;color:salmon;background-color:white;">salmon</option>
-            <option value="red" style="font-weight:bold;color:red;background-color:white;">red</option>
-            <option value="orange" style="font-weight:bold;color:orange;background-color:white;">orange</option>
-            <option value="yellow" style="font-weight:bold;color:yellow;background-color:white;">yellow</option>
-            <option value="chartreuse" style="font-weight:bold;color:chartreuse;background-color:white;">chartreuse</option>
-            <option value="yellowgreen" style="font-weight:bold;color:yellowgreen;background-color:white;">yellowgreen</option>
-            <option value="green" style="font-weight:bold;color:green;background-color:white;">green</option>
-            <option value="aqua" style="font-weight:bold;color:aqua;background-color:white;">aqua</option>
-            <option value="blue" style="font-weight:bold;color:blue;background-color:white;">blue</option>
-            <option value="teal" style="font-weight:bold;color:teal;background-color:white;">teal</option>
-            <option value="fuchsia" style="font-weight:bold;color:fuchsia;background-color:white;">fuchsia</option>
-            <option value="violet" style="font-weight:bold;color:violet;background-color:white;">violet</option>
-            <option value="purple" style="font-weight:bold;color:purple;background-color:white;">purple</option>
-            <option value="brown" style="font-weight:bold;color:brown;background-color:white;">brown</option>
-            <option value="tan" style="font-weight:bold;color:tan;background-color:white;">tan</option>
-            <option value="wheat" style="font-weight:bold;color:wheat;background-color:white;">wheat</option>
-            <option value="black" style="font-weight:bold;color:black;background-color:white;" selected>black</option>
-            <option value="silver" style="font-weight:bold;color:silver;background-color:white;">silver</option>
-            <option value="white" style="font-weight:bold;color:white;background-color:black;">white</option>
+            <option value="salmon" style="font-weight:bold;color:salmon;">salmon</option>
+            <option value="red" style="font-weight:bold;color:red;">red</option>
+            <option value="orange" style="font-weight:bold;color:orange;">orange</option>
+            <option value="yellow" style="font-weight:bold;color:yellow;">yellow</option>
+            <option value="chartreuse" style="font-weight:bold;color:chartreuse;">chartreuse</option>
+            <option value="yellowgreen" style="font-weight:bold;color:yellowgreen;">yellowgreen</option>
+            <option value="green" style="font-weight:bold;color:green;">green</option>
+            <option value="aqua" style="font-weight:bold;color:aqua;">aqua</option>
+            <option value="blue" style="font-weight:bold;color:blue;">blue</option>
+            <option value="teal" style="font-weight:bold;color:teal;">teal</option>
+            <option value="fuchsia" style="font-weight:bold;color:fuchsia;">fuchsia</option>
+            <option value="violet" style="font-weight:bold;color:violet;">violet</option>
+            <option value="purple" style="font-weight:bold;color:purple;">purple</option>
+            <option value="brown" style="font-weight:bold;color:brown;">brown</option>
+            <option value="tan" style="font-weight:bold;color:tan;">tan</option>
+            <option value="gray" style="font-weight:bold;color:gray;">gray</option>
+            <option value="black" style="font-weight:bold;color:black;" selected>black</option>
           </select>
           <input type="submit" value="Connect"/>
           <div class="error"></div>
@@ -298,10 +296,13 @@
 
           socket.on( 'connected', function( msg ) {
             if( connected ) {
-              add( '<b style="color: ' + msg.color + '">' + escapehtml(msg.username) + ' joined!</b>' );
+              add( '<div class="user-joined" style="color: ' + msg.color + '">' + escapehtml(msg.username) + ' joined!</div>' );
             }
             if( msg.username == username && !connected ) {
-              add( '<b style="color: #000">Connected users:</b> ' + escapehtml(msg.users.join(', ')) );
+              add(
+                '<div class="command-heading">Connected users:</div> ' +
+                '<div class="user-list">' + escapehtml(msg.users.join(', ')) + '</div>'
+              );
               connected = true;
             }
             users = msg.users;
@@ -309,12 +310,12 @@
           })
 
           socket.on( 'server', function( msg ) {
-            add( '<b style="color: #f00">' + escapehtml(msg.msg) + '</b>' );
+            add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>' );
           })
 
           socket.on( 'disconnected', function( msg ) {
             if( connected ) {
-              add( '<b style="color: ' + msg.color + '">' + escapehtml(msg.username) + ' left!</b>' );
+              add( '<div class="user-left" style="color: ' + msg.color + '">' + escapehtml(msg.username) + ' left!</div>' );
             }
             users = msg.users;
             updateusers();
@@ -342,7 +343,7 @@
 
               chunks = chunks.map(function(entry) {
                   if(entry.toLowerCase() == username.toLowerCase()) {
-                      return '<span style="color: #f00; font-weight: bold">' + entry + '</span>';
+                      return '<span class="name-highlight">' + entry + '</span>';
                   }
 
                   return entry;
@@ -387,7 +388,10 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: ' + msg.color + '">' + escapehtml(msg.username) + ':</b> ' + highlight(embiggen(escapehtml(msg.message))) );
+              add(
+                '<div class="chat-heading" style="color: ' + msg.color + '">' + escapehtml(msg.username) + ':</div> ' +
+                '<div class="chat-body">' + highlight(embiggen(escapehtml(msg.message))) + '</div>'
+              );
             }
           })
 
@@ -396,7 +400,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<b style="color: ' + msg.color + '">* ' + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) );
+              add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) + '</div>' );
             }
           })
 
@@ -407,7 +411,7 @@
               // have the correct password saved (stream was re-passworded with same password), don't refresh
               // and instead display a message.
               $.get("/" + streamer + "/info", {}, function(response) {
-                add( '<b style="color: #f00">' + escapehtml("Stream password has beeen set to \"" + getCookie("streampass") + "\"!") + '</b>' );
+                add( '<div class="server-message">' + escapehtml("Stream password has beeen set to \"" + getCookie("streampass") + "\"!") + '</div>' );
               } ).fail(function(response) {
                 if (response.status == 403) {
                   location.reload();
@@ -425,7 +429,7 @@
           socket.on( 'password deactivated', function( msg ) {
             if( msg.username.toLowerCase() != username.toLowerCase() ) {
               // Show the password being deactivated to everyone else but the admin.
-              add( '<b style="color: #f00">' + escapehtml(msg.msg) + '</b>' );
+              add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>' );
             }
           })
 

@@ -113,3 +113,30 @@ img.emote-big, img.emoji-big {
   width: auto;
   height: auto;
 }
+
+div.user-joined, div.user-left, div.command-heading, div.user-list, div.server-message, div.chat-heading, div.chat-body, div.chat-action {
+  display: inline;
+}
+
+div.user-joined, div.user-left, div.command-heading {
+  font-weight: bold;
+  color: #000;
+}
+
+div.user-list, div.chat-body {
+  color: #000;
+}
+
+div.chat-heading, div.chat-action {
+  font-weight: bold;
+}
+
+div.server-message {
+  font-weight: bold;
+  color: #f00;
+}
+
+.name-highlight {
+  color: #f00;
+  font-weight: bold;
+}
