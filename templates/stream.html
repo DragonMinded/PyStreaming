@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
       <title>{{ streamer }}'s Stream</title>
+      <style>
+        @font-face {
+          font-family: "Atkinson Hyperlegible";
+          src: url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.ttf') }}") format("truetype");
+        }
+      </style>
       <link href="{{ url_for('static', filename='stream.css') }}" rel="stylesheet" />
       <link href="{{ url_for('static', filename='stream-vertical.css') }}" media="screen and (max-aspect-ratio: 4/3)" rel="stylesheet" />
       <link href="https://vjs.zencdn.net/7.11.5/video-js.css" rel="stylesheet" />

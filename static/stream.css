@@ -1,4 +1,5 @@
 html, body {
+  font-family: "Atkinson Hyperlegible", Arial, Helvetica, sans-serif;
   margin: 0px;
   padding: 0px;
   width: 100vw;
@@ -38,12 +39,10 @@ div.info {
   height: 20px;
   background: #000000;
   color: #eeeeee;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 div.stream-description {
   color: #eeeeee;
-  font-family: Arial, Helvetica, sans-serif;
   padding-top: 3px;
 }
 
@@ -53,7 +52,6 @@ div.stream-padding {
 
 div.stream-count {
   color: #eeeeee;
-  font-family: Arial, Helvetica, sans-serif;
   padding-top: 3px;
   padding-right: 5px;
 }
@@ -81,7 +79,6 @@ div.chat-pane {
 div.messages, div.blank {
   flex-grow: 1;
   overflow-y: auto;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 div.chat-message {
