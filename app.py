@@ -22,7 +22,7 @@ config: Dict[str, Any] = {}
 
 
 # A quick hack to teach mypy about the valid SID parameter.
-class StreamingRequest(Request):  # type: ignore
+class StreamingRequest(Request):
     sid: Any
 
 
@@ -89,8 +89,8 @@ socket_to_info: Dict[Any, SocketInfo] = {}
 socket_to_presence: Dict[Any, PresenceInfo] = {}
 
 
-def users_in_room(streamer: str) -> List[str]:
-    return [i.username for i in socket_to_info.values() if i.streamer == streamer]
+def users_in_room(streamer: str) -> List[Dict[str, str]]:
+    return [{'username': i.username, 'type': get_type(i), 'color': i.htmlcolor} for i in socket_to_info.values() if i.streamer == streamer]
 
 
 def stream_count(streamer: str) -> int:
@@ -143,6 +143,15 @@ def get_color(color: str) -> Optional[int]:
         return None
 
     return intval
+
+
+def get_type(user: SocketInfo) -> str:
+    if user.admin:
+        return "admin"
+    elif user.moderator:
+        return "moderator"
+    else:
+        return "normal"
 
 
 def fetch_m3u8(streamkey: str, quality: Optional[str] = None) -> Optional[str]:
@@ -258,6 +267,10 @@ def stream(streamer: str) -> Response:
         "SELECT alias, uri FROM emotes ORDER BY alias",
     )
     emotes = {f":{result['alias']}:": result['uri'] for result in cursor.fetchall()}
+    icons = {
+        'admin': url_for('static', filename='admin.png'),
+        'moderator': url_for('static', filename='moderator.png'),
+    }
 
     return make_response(
         render_template(
@@ -266,6 +279,7 @@ def stream(streamer: str) -> Response:
             playlists=playlists,
             emojis=emojis,
             emotes=emotes,
+            icons=icons,
         )
     )
 
@@ -434,7 +448,7 @@ def streamts(filename: str) -> Response:
         abort(404)
 
     response = make_response(ts)
-    response.headers.set('Content-Type', 'video/mp2t')
+    response.headers.set('Content-Type', 'video/mp2t')  # type: ignore
     return response
 
 
@@ -474,7 +488,7 @@ def disconnect() -> None:
         info = socket_to_info[request.sid]
         del socket_to_info[request.sid]
 
-        socketio.emit('disconnected', {'username': info.username, 'color': info.htmlcolor, 'users': users_in_room(info.streamer)}, room=info.streamer)
+        socketio.emit('disconnected', {'username': info.username, 'type': get_type(info), 'color': info.htmlcolor, 'users': users_in_room(info.streamer)}, room=info.streamer)
     if request.sid in socket_to_presence:
         del socket_to_presence[request.sid]
 
@@ -550,7 +564,7 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
     socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin, False, False, color)
     join_room(streamer)
     socketio.emit('login success', {'username': json['username']}, room=request.sid)
-    socketio.emit('connected', {'username': json['username'], 'color': socket_to_info[request.sid].htmlcolor, 'users': users_in_room(streamer)}, room=streamer)
+    socketio.emit('connected', {'username': json['username'], 'type': get_type(socket_to_info[request.sid]), 'color': socket_to_info[request.sid].htmlcolor, 'users': users_in_room(streamer)}, room=streamer)
 
     if admin:
         socketio.emit('server', {'msg': 'You have admin rights.'}, room=request.sid)
@@ -599,6 +613,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     'message received',
                     {
                         'username': socket_to_info[request.sid].username,
+                        'type': get_type(socket_to_info[request.sid]),
                         'color': socket_to_info[request.sid].htmlcolor,
                         'message': emotes(message),
                     },
@@ -617,6 +632,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     'action received',
                     {
                         'username': socket_to_info[request.sid].username,
+                        'type': get_type(socket_to_info[request.sid]),
                         'color': socket_to_info[request.sid].htmlcolor,
                         'message': emotes(message),
                     },
@@ -645,6 +661,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         'action received',
                         {
                             'username': socket_to_info[request.sid].username,
+                            'type': get_type(socket_to_info[request.sid]),
                             'color': socket_to_info[request.sid].htmlcolor,
                             'message': 'changed their color!',
                         },
@@ -676,8 +693,8 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 )
         elif command in ["/users"]:
             socketio.emit(
-                'server',
-                {'msg': 'Users in chat: ' + ", ".join(users_in_room(socket_to_info[request.sid].streamer))},
+                'userlist',
+                {'users': users_in_room(socket_to_info[request.sid].streamer)},
                 room=request.sid,
             )
         elif command in ["/settings"]:
@@ -967,6 +984,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 'message received',
                 {
                     'username': socket_to_info[request.sid].username,
+                    'type': get_type(socket_to_info[request.sid]),
                     'color': socket_to_info[request.sid].htmlcolor,
                     'message': emotes(message),
                 },

@@ -171,10 +171,11 @@ function autocomplete( selector, items ) {
         $('<div class="autocomplete"></div>').appendTo('body');
 
         items.forEach(function(item) {
+            var text = item.text;
             if(item.text.startsWith('@')) {
-                item = item.slice(1);
+                text = item.text.slice(1);
             }
-            $( '<div class="autocomplete-element"></div>' ).html(item.preview + "&nbsp;" + item.text).appendTo('div.autocomplete');
+            $( '<div class="autocomplete-element"></div>' ).html(item.preview + "&nbsp;" + text).appendTo('div.autocomplete');
         });
 
         if( additional ) {
@@ -232,7 +233,9 @@ function autocomplete( selector, items ) {
     }
 
     function cursorselection() {
-        return $('div.autocomplete-element.selected').text();
+        var text = $('div.autocomplete-element.selected').text();
+        elems = text.split('\xa0');
+        return elems[elems.length - 1];
     }
 
     function update(newitems) {

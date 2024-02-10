@@ -111,8 +111,19 @@ img.emote-big, img.emoji-big {
   height: auto;
 }
 
-div.user-joined, div.user-left, div.command-heading, div.user-list, div.server-message, div.chat-heading, div.chat-body, div.chat-action {
+img.user-type-icon {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  margin-bottom: -2px;
+}
+
+div.user-joined, div.user-left, div.command-heading, div.user-list, div.user-item, div.server-message, div.chat-heading, div.chat-body, div.chat-action {
   display: inline;
+}
+
+div.user-item {
+  white-space: nowrap;
 }
 
 div.user-joined, div.user-left, div.command-heading {
