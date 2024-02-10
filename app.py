@@ -3,6 +3,7 @@ import calendar
 import datetime
 import emoji
 import os
+import random
 import webcolors  # type: ignore
 import yaml
 from flask import Flask, Request, Response, abort, jsonify, render_template, request as base_request, redirect, make_response, url_for
@@ -119,9 +120,14 @@ def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
 def get_color(color: str) -> Optional[int]:
     color = color.strip().lower()
 
+    if color == "random":
+        # Pick a random webcolor.
+        choices = [k for k in webcolors.CSS3_NAMES_TO_HEX]
+        color = random.choice(choices)
+
     # Attempt to convert from any color specification to hex.
     try:
-        color = webcolors.name_to_hex(color)
+        color = webcolors.name_to_hex(color, spec=webcolors.CSS3)
     except ValueError:
         pass
     try:
@@ -630,7 +636,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 if color is None:
                     socketio.emit(
                         'server',
-                        {'msg': f'Invalid color {message} specified, try a color name or HTML color like #ff00ff.'},
+                        {'msg': f'Invalid color {message} specified, try a color name, an HTML color like #ff00ff or "random" for a random color.'},
                         room=request.sid,
                     )
                 else:
