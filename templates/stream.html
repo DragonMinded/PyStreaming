@@ -123,13 +123,22 @@
           var autoscroll = true;
           var users = [];
 
-          var updater = autocomplete('#message', Object.keys(emojis).concat(Object.keys(emotes)));
+          // Support previews of emoji and emotes.
+          var options = [];
+          for (const [key, value] of Object.entries(emojis)) {
+              options.push({text: key, preview: value});
+          }
+          for (const [key, value] of Object.entries(emotes)) {
+              options.push({text: key, preview: "<img class=\"emoji-preview\" src=\"" + value + "\" />"});
+          }
+
+          var updater = autocomplete('#message', options);
 
           var updateusers = function() {
               var acusers = users.map(function(user) {
                   return "@" + user;
               });
-              updater(Object.keys(emojis).concat(Object.keys(emotes).concat(acusers)));
+              updater(options);
           }
 
           $( '#login' ).on( 'submit', function( e ) {

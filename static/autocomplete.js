@@ -131,7 +131,7 @@ function autocomplete( selector, items ) {
         {
             word = word.toLowerCase();
             matches = items.filter(function(item) {
-                return item.toLowerCase().startsWith(word);
+                return item.text.toLowerCase().startsWith(word);
             });
 
             if (matches.length > 0)
@@ -171,10 +171,10 @@ function autocomplete( selector, items ) {
         $('<div class="autocomplete"></div>').appendTo('body');
 
         items.forEach(function(item) {
-            if(item.startsWith('@')) {
+            if(item.text.startsWith('@')) {
                 item = item.slice(1);
             }
-            $( '<div class="autocomplete-element"></div>' ).text(item).appendTo('div.autocomplete');
+            $( '<div class="autocomplete-element"></div>' ).html(item.preview + "&nbsp;" + item.text).appendTo('div.autocomplete');
         });
 
         if( additional ) {
