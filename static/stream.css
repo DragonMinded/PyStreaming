@@ -122,24 +122,24 @@ div.user-joined, div.user-left, div.user-renamed, div.command-heading, div.user-
   display: inline;
 }
 
-div.user-item {
+.user-item {
   white-space: nowrap;
 }
 
-div.user-joined, div.user-left, div.user-renamed, div.command-heading {
+.user-joined, .user-left, .user-renamed, .command-heading {
   font-weight: bold;
   color: #000;
 }
 
-div.user-list, div.chat-body {
+.user-list, .chat-body {
   color: #000;
 }
 
-div.chat-heading, div.chat-action {
+.chat-heading, .chat-action {
   font-weight: bold;
 }
 
-div.server-message {
+.server-message {
   font-weight: bold;
   color: #f00;
 }
