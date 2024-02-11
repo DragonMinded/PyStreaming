@@ -688,7 +688,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     if user['username'].lower() == name.lower():
                         socketio.emit(
                             'server',
-                            {'msg': f'Name has already been taken, try a different name.'},
+                            {'msg': 'Name has already been taken, try a different name.'},
                             room=request.sid,
                         )
                         break
@@ -696,7 +696,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     if not name:
                         socketio.emit(
                             'server',
-                            {'msg': f'Invalid name specified, try a different name.'},
+                            {'msg': 'Invalid name specified, try a different name.'},
                             room=request.sid,
                         )
                     else:
