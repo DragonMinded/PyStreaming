@@ -1,0 +1,29 @@
+#! /bin/bash
+# This should really be a for real-real setup.py with all the manifest stuff it needs,
+# but what if I'm lazy and am not doing that.
+
+set -e
+
+if [ -z "$1" ] ; then
+    echo "No installation directory provided."
+    exit 1
+fi
+
+INSTALLDIR="$1"
+mkdir -p "${INSTALLDIR}"
+
+# First, copy the essential scripts and config.
+cp -v alembic.ini app.py data.py env.py manage.py "${INSTALLDIR}"
+
+# Copy migrations over without any local pycache.
+mkdir -p "${INSTALLDIR}/versions"
+cp -v versions/*.py "${INSTALLDIR}/versions/"
+
+# Copy templates over wholesale.
+mkdir -p "${INSTALLDIR}/templates"
+find templates -maxdepth 1 -not -path '*/.*' -type f -exec cp -v '{}' "${INSTALLDIR}/templates/" ';'
+
+# Copy static over, but not the emoji directory itself, because the destination
+# could have different installed emoji than the debug server.
+mkdir -p "${INSTALLDIR}/static"
+find static -maxdepth 1 -not -path '*/.*' -type f -exec cp -v '{}' "${INSTALLDIR}/static/" ';'
