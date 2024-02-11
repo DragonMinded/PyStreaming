@@ -10,6 +10,7 @@ function getCursorPosition(element) {
 function autocomplete( selector, items ) {
     var displayed = false;
     var handled = false;
+    var displaying = [];
 
     $(selector).on('keydown', function(event) {
         handled = false;
@@ -167,15 +168,25 @@ function autocomplete( selector, items ) {
 
         // Construct element
         displayed = true;
+        displaying = items;
 
         $('<div class="autocomplete"></div>').appendTo('body');
 
-        items.forEach(function(item) {
+        items.forEach(function(item, i) {
             var text = item.text;
-            if(item.text.startsWith('@')) {
-                text = item.text.slice(1);
+            if(text.startsWith('@')) {
+                // Display nick as just the preview.
+                $( '<div class="autocomplete-element"></div>' )
+                    .attr("idx", i)
+                    .html(item.preview)
+                    .appendTo('div.autocomplete');
+            } else {
+                // Display emoji/emote as the preview and the text to insert.
+                $( '<div class="autocomplete-element"></div>' )
+                    .attr("idx", i)
+                    .html(item.preview + "&nbsp;" + text)
+                    .appendTo('div.autocomplete');
             }
-            $( '<div class="autocomplete-element"></div>' ).html(item.preview + "&nbsp;" + text).appendTo('div.autocomplete');
         });
 
         if( additional ) {
@@ -233,9 +244,12 @@ function autocomplete( selector, items ) {
     }
 
     function cursorselection() {
-        var text = $('div.autocomplete-element.selected').text();
-        elems = text.split('\xa0');
-        return elems[elems.length - 1];
+        var idx = parseInt($('div.autocomplete-element.selected').attr("idx"));
+        var text = displaying[idx].text;
+        if(text.startsWith('@')) {
+            text = text.slice(1);
+        }
+        return text;
     }
 
     function update(newitems) {

@@ -137,7 +137,7 @@
 
           var updateusers = function() {
               var acusers = users.map(function(user) {
-                  return {text: "@" + user.username, preview: ''};
+                  return {text: "@" + user.username, preview: "<span>" + escapehtml(user.username) + "</span>"};
               });
               updater(options.concat(acusers));
           }
