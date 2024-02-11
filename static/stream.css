@@ -145,6 +145,10 @@ div.server-message {
 }
 
 .name-highlight {
-  color: #f00;
-  font-weight: bold;
+  background-color: #4400ff99;
+  color: #fff;
+  border-radius: 10px;
+  padding-left: 5px;
+  padding-right: 5px;
+  white-space: nowrap;
 }

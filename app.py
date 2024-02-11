@@ -521,6 +521,10 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
         socketio.emit('error', {'msg': 'Username cannot be blank'}, room=request.sid)
         return
 
+    if len(json['username']) >= 30:
+        socketio.emit('error', {'msg': 'Username cannot be that long'}, room=request.sid)
+        return
+
     streamer = json['streamer'].lower()
     username = json['username']
 
@@ -684,35 +688,42 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 # Set a new name
                 name = message.strip()
 
-                for user in users_in_room(socket_to_info[request.sid].streamer):
-                    if user['username'].lower() == name.lower():
-                        socketio.emit(
-                            'server',
-                            {'msg': 'Name has already been taken, try a different name.'},
-                            room=request.sid,
-                        )
-                        break
+                if len(name) >= 30:
+                    socketio.emit(
+                        'server',
+                        {'msg': 'Too long of a name specified, try a different name.'},
+                        room=request.sid,
+                    )
                 else:
-                    if not name:
-                        socketio.emit(
-                            'server',
-                            {'msg': 'Invalid name specified, try a different name.'},
-                            room=request.sid,
-                        )
+                    for user in users_in_room(socket_to_info[request.sid].streamer):
+                        if user['username'].lower() == name.lower():
+                            socketio.emit(
+                                'server',
+                                {'msg': 'Name has already been taken, try a different name.'},
+                                room=request.sid,
+                            )
+                            break
                     else:
-                        old = socket_to_info[request.sid].username
-                        socket_to_info[request.sid].username = name
-                        socketio.emit(
-                            'rename',
-                            {
-                                'newname': socket_to_info[request.sid].username,
-                                'oldname': old,
-                                'type': get_type(socket_to_info[request.sid]),
-                                'color': socket_to_info[request.sid].htmlcolor,
-                                'users': users_in_room(socket_to_info[request.sid].streamer),
-                            },
-                            room=socket_to_info[request.sid].streamer,
-                        )
+                        if not name:
+                            socketio.emit(
+                                'server',
+                                {'msg': 'Invalid name specified, try a different name.'},
+                                room=request.sid,
+                            )
+                        else:
+                            old = socket_to_info[request.sid].username
+                            socket_to_info[request.sid].username = name
+                            socketio.emit(
+                                'rename',
+                                {
+                                    'newname': socket_to_info[request.sid].username,
+                                    'oldname': old,
+                                    'type': get_type(socket_to_info[request.sid]),
+                                    'color': socket_to_info[request.sid].htmlcolor,
+                                    'users': users_in_room(socket_to_info[request.sid].streamer),
+                                },
+                                room=socket_to_info[request.sid].streamer,
+                            )
         elif command in ["/help"]:
             messages = [
                 "The following commands are recognized:",
