@@ -313,13 +313,22 @@
             } );
           });
 
+          var userify = function( user, color ) {
+              var usecolor = color || false;
+              if (usecolor) {
+                  return '<div class="user-item" style="color: ' + color + '">' + user + '</div>';
+              } else {
+                  return '<div class="user-item">' + user + '</div>';
+              }
+          }
+
           socket.on( 'connected', function( msg ) {
             if( connected ) {
-              add( '<div class="user-joined" style="color: ' + msg.color + '">' + iconify(msg) + escapehtml(msg.username) + ' joined!</div>' );
+              add( '<div class="user-joined" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>' );
             }
             if( msg.username == username && !connected ) {
               var userlist = msg.users.map(function(user) {
-                  return '<div class="user-item" style="color: ' + user.color + '">' + iconify(user) + escapehtml(user.username) + '</div>';
+                  return userify(iconify(user) + escapehtml(user.username), user.color);
               });
               add(
                 '<div class="command-heading">Connected users:</div> ' +
@@ -337,7 +346,7 @@
 
           socket.on( 'disconnected', function( msg ) {
             if( connected ) {
-              add( '<div class="user-left" style="color: ' + msg.color + '">' + iconify(msg) + escapehtml(msg.username) + ' left!</div>' );
+              add( '<div class="user-left" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>' );
             }
             users = msg.users;
             updateusers();
@@ -345,7 +354,7 @@
 
           socket.on( 'userlist', function( msg ) {
             var userlist = msg.users.map(function(user) {
-              return '<div class="user-item" style="color: ' + user.color + '">' + iconify(user) + escapehtml(user.username) + '</div>';
+              return userify(iconify(user) + escapehtml(user.username), user.color);
             });
             add(
               '<div class="command-heading">Connected users:</div> ' +
@@ -354,7 +363,7 @@
           })
 
           socket.on( 'rename', function( msg ) {
-            add( '<div class="user-renamed" style="color: ' + msg.color + '">' + iconify(msg) + escapehtml(msg.oldname) + ' is now known as ' + iconify(msg) + escapehtml(msg.newname) + '!</div>' );
+            add( '<div class="user-renamed" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>' );
             if (msg.oldname == username) {
                 username = msg.newname;
             }
@@ -389,7 +398,7 @@
                 continue;
               }
 
-              before = '<span class="name-highlight">';
+              before = '<span class="name-highlight user-item">';
               after = '</span>';
               msg = (
                 msg.substring(0, pos) +
@@ -450,7 +459,7 @@
                 clearerror();
               }
               add(
-                '<div class="chat-heading" style="color: ' + msg.color + '">' + iconify(msg) + escapehtml(msg.username) + ':</div> ' +
+                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
                 '<div class="chat-body">' + highlight(embiggen(escapehtml(msg.message))) + '</div>'
               );
             }
@@ -461,7 +470,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + iconify(msg) + escapehtml(msg.username) + ' ' + highlight(embiggen(escapehtml(msg.message))) + '</div>' );
+              add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + highlight(embiggen(escapehtml(msg.message))) + '</div>' );
             }
           })
 
