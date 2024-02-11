@@ -523,6 +523,12 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
 
     streamer = json['streamer'].lower()
     username = json['username']
+
+    for user in users_in_room(streamer):
+        if user['username'].lower() == username.lower():
+            socketio.emit('error', {'msg': 'Username is already taken'}, room=request.sid)
+            return
+
     color = get_color(json['color'].strip().lower()) or 0
     key = json.get('key', None)
 
@@ -649,7 +655,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 # Set the color of your name
                 color = get_color(message.strip().lower())
 
-                if color is None:
+                if not color:
                     socketio.emit(
                         'server',
                         {'msg': f'Invalid color {message} specified, try a color name, an HTML color like #ff00ff or "random" for a random color.'},
@@ -667,6 +673,46 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         },
                         room=socket_to_info[request.sid].streamer,
                     )
+        elif command in ["/name", "/nick"]:
+            if socket_to_info[request.sid].muted:
+                socketio.emit(
+                    'server',
+                    {'msg': "You are muted!"},
+                    room=request.sid,
+                )
+            else:
+                # Set a new name
+                name = message.strip()
+
+                for user in users_in_room(socket_to_info[request.sid].streamer):
+                    if user['username'].lower() == name.lower():
+                        socketio.emit(
+                            'server',
+                            {'msg': f'Name has already been taken, try a different name.'},
+                            room=request.sid,
+                        )
+                        break
+                else:
+                    if not name:
+                        socketio.emit(
+                            'server',
+                            {'msg': f'Invalid name specified, try a different name.'},
+                            room=request.sid,
+                        )
+                    else:
+                        old = socket_to_info[request.sid].username
+                        socket_to_info[request.sid].username = name
+                        socketio.emit(
+                            'rename',
+                            {
+                                'newname': socket_to_info[request.sid].username,
+                                'oldname': old,
+                                'type': get_type(socket_to_info[request.sid]),
+                                'color': socket_to_info[request.sid].htmlcolor,
+                                'users': users_in_room(socket_to_info[request.sid].streamer),
+                            },
+                            room=socket_to_info[request.sid].streamer,
+                        )
         elif command in ["/help"]:
             messages = [
                 "The following commands are recognized:",
@@ -674,6 +720,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 "/users - show the currently chatting users",
                 "/me - perform an action",
                 "/color - set the color of your name in chat",
+                "/name - change your name to a new one",
             ]
             if socket_to_info[request.sid].admin:
                 messages.append("/settings - display all stream settings")
@@ -746,10 +793,10 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 return
 
             message = message.strip().lower()
-            for user in socket_to_info.values():
-                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.muted is False)
-                    user.muted = True
+            for sinfo in socket_to_info.values():
+                if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
+                    changed = (sinfo.muted is False)
+                    sinfo.muted = True
 
                     if changed:
                         socketio.emit(
@@ -760,7 +807,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         socketio.emit(
                             'server',
                             {'msg': "You have been muted."},
-                            room=user.sid,
+                            room=sinfo.sid,
                         )
                     else:
                         socketio.emit(
@@ -785,10 +832,10 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 return
 
             message = message.strip().lower()
-            for user in socket_to_info.values():
-                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.muted is True)
-                    user.muted = False
+            for sinfo in socket_to_info.values():
+                if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
+                    changed = (sinfo.muted is True)
+                    sinfo.muted = False
 
                     if changed:
                         socketio.emit(
@@ -799,7 +846,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         socketio.emit(
                             'server',
                             {'msg': "You have been unmuted."},
-                            room=user.sid,
+                            room=sinfo.sid,
                         )
                     else:
                         socketio.emit(
@@ -824,10 +871,10 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 return
 
             message = message.strip().lower()
-            for user in socket_to_info.values():
-                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.moderator is False)
-                    user.moderator = True
+            for sinfo in socket_to_info.values():
+                if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
+                    changed = (sinfo.moderator is False)
+                    sinfo.moderator = True
 
                     if changed:
                         socketio.emit(
@@ -838,7 +885,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         socketio.emit(
                             'server',
                             {'msg': "You have been promoted to moderator."},
-                            room=user.sid,
+                            room=sinfo.sid,
                         )
                     else:
                         socketio.emit(
@@ -863,10 +910,10 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 return
 
             message = message.strip().lower()
-            for user in socket_to_info.values():
-                if user.username.lower() == message and user.streamer == socket_to_info[request.sid].streamer:
-                    changed = (user.moderator is True)
-                    user.moderator = False
+            for sinfo in socket_to_info.values():
+                if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
+                    changed = (sinfo.moderator is True)
+                    sinfo.moderator = False
 
                     if changed:
                         socketio.emit(
@@ -877,7 +924,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         socketio.emit(
                             'server',
                             {'msg': "You have been demoted from moderator."},
-                            room=user.sid,
+                            room=sinfo.sid,
                         )
                     else:
                         socketio.emit(

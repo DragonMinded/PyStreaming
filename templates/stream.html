@@ -127,7 +127,7 @@
           // Support previews of emoji and emotes.
           var options = [];
           for (const [key, value] of Object.entries(emojis)) {
-              options.push({text: key, preview: "&nbsp;" + value});
+              options.push({text: key, preview: "&nbsp;" + twemoji.parse(value)});
           }
           for (const [key, value] of Object.entries(emotes)) {
               options.push({text: key, preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
@@ -198,6 +198,9 @@
             str = String(str);
             str = str.replace(/[&<>"'`=\/]/g, function (s) {
               return entityMap[s];
+            });
+            Object.keys(emojis).forEach(function(emoji) {
+                str = str.replaceAll(emoji, emojis[emoji]);
             });
             str = twemoji.parse(str);
             Object.keys(emotes).forEach(function(emote) {
@@ -350,35 +353,56 @@
             );
           })
 
+          socket.on( 'rename', function( msg ) {
+            add( '<div class="user-renamed" style="color: ' + msg.color + '">' + iconify(msg) + escapehtml(msg.oldname) + ' is now known as ' + iconify(msg) + escapehtml(msg.newname) + '!</div>' );
+            if (msg.oldname == username) {
+                username = msg.newname;
+            }
+            users = msg.users;
+            updateusers();
+          })
+
           var highlight = function(msg) {
-              if( msg.length == 0 ) {
-                  return msg;
+            var actualuser = embiggen(escapehtml(username)).toLowerCase();
+
+            if( msg.length < actualuser.length ) {
+              return msg;
+            }
+
+            var pos = 0;
+            while (pos <= (msg.length - actualuser.length)) {
+              if (pos > 0) {
+                if (msg.substring(pos - 1, pos) != " ") {
+                  pos ++;
+                  continue;
+                }
+              }
+              if (pos < (msg.length - actualuser.length)) {
+                if (msg.substring(pos + actualuser.length, pos + actualuser.length + 1) != " ") {
+                  pos ++;
+                  continue;
+                }
               }
 
-              var chunks = [msg.slice(0, 1)];
-              var pos;
-
-              var isspace = function(str) {
-                  return str.trim().length == 0;
+              if (msg.substring(pos, pos + actualuser.length).toLowerCase() != actualuser) {
+                pos++;
+                continue;
               }
 
-              for(pos = 1; pos < msg.length; pos++) {
-                  if(isspace(chunks[chunks.length - 1]) == isspace(msg[pos])) {
-                      chunks[chunks.length - 1] += msg[pos];
-                  } else {
-                      chunks.push(msg[pos]);
-                  }
-              }
+              before = '<span class="name-highlight">';
+              after = '</span>';
+              msg = (
+                msg.substring(0, pos) +
+                before +
+                msg.substring(pos, pos + actualuser.length) +
+                after +
+                msg.substring(pos + actualuser.length, msg.length)
+              );
 
-              chunks = chunks.map(function(entry) {
-                  if(entry.toLowerCase() == username.toLowerCase()) {
-                      return '<span class="name-highlight">' + entry + '</span>';
-                  }
+              pos += actualuser.length + before.length + after.length;
+            }
 
-                  return entry;
-              });
-
-              return chunks.join('');
+            return msg;
           }
 
           var embiggen = function(msg) {
