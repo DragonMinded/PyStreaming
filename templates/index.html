@@ -8,7 +8,7 @@
         src: url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.ttf') }}") format("truetype");
       }
     </style>
-    <link href="{{ url_for('static', filename='frontpage.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='frontpage.css') }}?{{ cache_bust }}" rel="stylesheet" />
   </head>
 
   <body>

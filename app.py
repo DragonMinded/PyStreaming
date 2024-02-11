@@ -15,6 +15,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from data import Data
 
 
+# Allow cache-busting of entire frontend for stream page and chat updates.
+FRONTEND_CACHE_BUST: str = "site.1.0.0"
+
+
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins='*')
@@ -208,6 +212,13 @@ def clean_symlinks() -> None:
         # We don't want to interrupt playlist fetching due to a failure to
         # clean. If this happens the stream will pause.
         pass
+
+
+@app.context_processor
+def provide_globals() -> Dict[str, Any]:
+    return {
+        "cache_bust": f"v={FRONTEND_CACHE_BUST}",
+    }
 
 
 @app.route('/')
