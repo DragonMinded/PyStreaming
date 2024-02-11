@@ -106,10 +106,20 @@
         </div>
 
         <script type="text/javascript">
+          // Add quality selector to the stream so that people can choose lower bitrates.
           videojs("my-video").ready(function(){
             var player = this;
             player.controlBar.addChild('QualitySelector');
           });
+
+          // Stop forms from submitting POST requests.
+          $( '#login' ).on( 'submit', function( e ) {
+            e.preventDefault();
+          } );
+
+          $( '#chat' ).on( 'submit', function( e ) {
+            e.preventDefault();
+          } );
         </script>
         <script type="text/javascript">
           var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
@@ -132,9 +142,9 @@
           for (const [key, value] of Object.entries(emotes)) {
               options.push({text: key, preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
           }
-
           var updater = autocomplete('#message', options);
 
+          // Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
           var updateusers = function() {
               var acusers = users.map(function(user) {
                   return {text: "@" + user.username, preview: "<span>" + escapehtml(user.username) + "</span>"};
@@ -142,23 +152,18 @@
               updater(options.concat(acusers));
           }
 
-          $( '#login' ).on( 'submit', function( e ) {
-            e.preventDefault();
-          } );
-
-          $( '#chat' ).on( 'submit', function( e ) {
-            e.preventDefault();
-          } );
-
+          // Calculate the integer scroll top of a given component.
           var scrollTop = function( obj ) {
             // Sometimes the chrome/firefox calculation of scrollTopMax is off by one
             return Math.floor(obj.scrollTop) + 1;
           }
 
+          // Calculate the maximum scroll top of a given component.
           var scrollTopMax = function( obj ) {
             return obj.scrollHeight - obj.clientHeight;
           }
 
+          // Add some inner HTML to the chat box.
           var add = function( inner ) {
             var box = $( 'div.messages' );
             box.append( '<div class="chat-message">' + inner + '</div>' );
@@ -167,6 +172,7 @@
             }
           }
 
+          // Display an error in the user error box at the bottom, mostly for login.
           var displayerror = function( error ) {
             var box = $( 'div.messages' );
             $( 'div.error' ).text( error );
@@ -175,6 +181,7 @@
             }
           }
 
+          // Remove a displayed error in the user error box at the bottom.
           var clearerror = function() {
             var box = $( 'div.messages' );
             $( 'div.error' ).text( "" );
@@ -194,6 +201,7 @@
             '=': '&#x3D;'
           };
 
+          // Given a user-supplied message, escape any HTML in the message and apply emoji/emote lookups.
           var escapehtml = function( str ) {
             str = String(str);
             str = str.replace(/[&<>"'`=\/]/g, function (s) {
@@ -209,12 +217,17 @@
             return str;
           }
 
+          // Keep the socket alive, and allow accurate view counts for the stream.
           var ping = function() {
             socket.emit( 'presence', {
               streamer : streamer,
             } );
           }
 
+          // Grab the stream information, possibly reload the stream control if the streamer went live,
+          // display the info such as number of viewers and stream description. This also handles when
+          // a password is applied to the stream that the viewer has not inputted, to kick anyone who
+          // joined before a password was set.
           var info = function() {
             $.get("/" + streamer + "/info", {}, function(response) {
               if (response.live) {
@@ -239,11 +252,114 @@
             } );
           }
 
+          // Walks an already HTML-stripped and emojified message to see if any part of it is a reference
+          // to the current user. If so, wraps that chunk of text in a highlight div, but does not change
+          // capitalization. This allows your own name to be highlighted without rewriting how somebody
+          // wrote the message.
+          var highlight = function(msg) {
+            var actualuser = embiggen(escapehtml(username)).toLowerCase();
+
+            if( msg.length < actualuser.length ) {
+              return msg;
+            }
+
+            var pos = 0;
+            while (pos <= (msg.length - actualuser.length)) {
+              if (pos > 0) {
+                if (msg.substring(pos - 1, pos) != " ") {
+                  pos ++;
+                  continue;
+                }
+              }
+              if (pos < (msg.length - actualuser.length)) {
+                if (msg.substring(pos + actualuser.length, pos + actualuser.length + 1) != " ") {
+                  pos ++;
+                  continue;
+                }
+              }
+
+              if (msg.substring(pos, pos + actualuser.length).toLowerCase() != actualuser) {
+                pos++;
+                continue;
+              }
+
+              before = '<span class="name-highlight user-item">';
+              after = '</span>';
+              msg = (
+                msg.substring(0, pos) +
+                before +
+                msg.substring(pos, pos + actualuser.length) +
+                after +
+                msg.substring(pos + actualuser.length, msg.length)
+              );
+
+              pos += actualuser.length + before.length + after.length;
+            }
+
+            return msg;
+          }
+
+          // Takes an alraedy HTML-stripped and emojified message and figures out if it contains only
+          // emoji/emotes. If so, it makes them bigger because bigger emoji is more fun.
+          var embiggen = function(msg) {
+              if( msg.length == 0 ) {
+                  return msg;
+              }
+
+              var domentry = $('<span class="wrapperelement">' + msg + '</span>');
+              var text = domentry.text().trim();
+              if (text.length == 0 && msg.length > 0) {
+                  // Emoji only, embiggen the pictures.
+                  domentry.find('.emoji').addClass('emoji-big').removeClass('emoji');
+                  domentry.find('.emote').addClass('emote-big').removeClass('emote');
+                  return domentry.html();
+              }
+
+              return msg;
+          }
+
+          // Takes any message that supports user type and outputs a user type icon for that user type.
+          var iconify = function(msg) {
+              if( icons.hasOwnProperty(msg.type) ) {
+                  return '<img class="user-type-icon" src="' + icons[msg.type] + '" alt="' + msg.type + '" />';
+              }
+
+              return "";
+          }
+
+          // Takes an already formatted and iconified username string and wraps it in a user-item div
+          // to ensure that the name doesn't get word-wrapped in the middle. Also allows name colors to
+          // be applied when needed.
+          var userify = function( user, color ) {
+              var usecolor = color || false;
+              if (usecolor) {
+                  return '<div class="user-item" style="color: ' + color + '">' + user + '</div>';
+              } else {
+                  return '<div class="user-item">' + user + '</div>';
+              }
+          }
+
+          var setCookie = function(name,value,days) {
+              var expires = "";
+              if (days) {
+                  var date = new Date();
+                  date.setTime(date.getTime() + (days*24*60*60*1000));
+                  expires = "; expires=" + date.toUTCString();
+              }
+              document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+          }
+
+          var getCookie = function(name) {
+            return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop() || ''
+          }
+
+          // Hook autoscrolling to being a the bottom of the chat.
           $('div.messages').scroll(function() {
             var box = $( 'div.messages' );
             autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
           });
 
+          // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
           $(window).resize(function() {
             var box = $( 'div.messages' );
             if (autoscroll) {
@@ -251,6 +367,7 @@
             }
           });
 
+          // All of our websocket messages from the server are handled below.
           socket.on( 'connect', function() {
             clearerror();
             $( '#login' ).on( 'submit', function( e ) {
@@ -313,15 +430,6 @@
             } );
           });
 
-          var userify = function( user, color ) {
-              var usecolor = color || false;
-              if (usecolor) {
-                  return '<div class="user-item" style="color: ' + color + '">' + user + '</div>';
-              } else {
-                  return '<div class="user-item">' + user + '</div>';
-              }
-          }
-
           socket.on( 'connected', function( msg ) {
             if( connected ) {
               add( '<div class="user-joined" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>' );
@@ -370,88 +478,6 @@
             users = msg.users;
             updateusers();
           })
-
-          var highlight = function(msg) {
-            var actualuser = embiggen(escapehtml(username)).toLowerCase();
-
-            if( msg.length < actualuser.length ) {
-              return msg;
-            }
-
-            var pos = 0;
-            while (pos <= (msg.length - actualuser.length)) {
-              if (pos > 0) {
-                if (msg.substring(pos - 1, pos) != " ") {
-                  pos ++;
-                  continue;
-                }
-              }
-              if (pos < (msg.length - actualuser.length)) {
-                if (msg.substring(pos + actualuser.length, pos + actualuser.length + 1) != " ") {
-                  pos ++;
-                  continue;
-                }
-              }
-
-              if (msg.substring(pos, pos + actualuser.length).toLowerCase() != actualuser) {
-                pos++;
-                continue;
-              }
-
-              before = '<span class="name-highlight user-item">';
-              after = '</span>';
-              msg = (
-                msg.substring(0, pos) +
-                before +
-                msg.substring(pos, pos + actualuser.length) +
-                after +
-                msg.substring(pos + actualuser.length, msg.length)
-              );
-
-              pos += actualuser.length + before.length + after.length;
-            }
-
-            return msg;
-          }
-
-          var embiggen = function(msg) {
-              if( msg.length == 0 ) {
-                  return msg;
-              }
-
-              var domentry = $('<span class="wrapperelement">' + msg + '</span>');
-              var text = domentry.text().trim();
-              if (text.length == 0 && msg.length > 0) {
-                  // Emoji only, embiggen the pictures.
-                  domentry.find('.emoji').addClass('emoji-big').removeClass('emoji');
-                  domentry.find('.emote').addClass('emote-big').removeClass('emote');
-                  return domentry.html();
-              }
-
-              return msg;
-          }
-
-          var iconify = function(msg) {
-              if( icons.hasOwnProperty(msg.type) ) {
-                  return '<img class="user-type-icon" src="' + icons[msg.type] + '" alt="' + msg.type + '" />';
-              }
-
-              return "";
-          }
-
-          var setCookie = function(name,value,days) {
-              var expires = "";
-              if (days) {
-                  var date = new Date();
-                  date.setTime(date.getTime() + (days*24*60*60*1000));
-                  expires = "; expires=" + date.toUTCString();
-              }
-              document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-          }
-
-          var getCookie = function(name) {
-            return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop() || ''
-          }
 
           socket.on( 'message received', function( msg ) {
             if( connected ) {
