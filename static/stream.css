@@ -62,7 +62,7 @@ div.chat-pane {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  background: #dddddd;
+  background: #eeeeee;
 }
 .chat-inner {
   display: flex;
