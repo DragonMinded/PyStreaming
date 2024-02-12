@@ -154,6 +154,7 @@
             e.preventDefault();
           } );
         </script>
+        <script src="{{ url_for('static', filename='pictochat.js') }}"></script>
         <script type="text/javascript">
           var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
           var username = undefined;
@@ -413,6 +414,7 @@
                 streamer : streamer,
                 color : color,
               } );
+              updateColor(color);
             } );
 
             ping();
@@ -558,6 +560,10 @@
             }
           })
 
+          socket.on( 'return color', function( msg ) {
+            updateColor(msg.color);
+          });
+
           socket.on( 'password activated', function( msg ) {
             if( msg.username.toLowerCase() != username.toLowerCase() ) {
               // Kick all users so that they must enter the stream password. Don't kick the admin since
@@ -596,7 +602,6 @@
             console.log( msg.msg );
           } );
         </script>
-        <script src="{{ url_for('static', filename='pictochat.js') }}"></script>
       </div>
     </div>
   </body>

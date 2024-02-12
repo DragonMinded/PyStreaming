@@ -76,4 +76,8 @@ function updateColor(col){
     usercolor = col;
     colors[1] = col;
     canvas.style["outline-color"] = col;
+    if(currentCol == 1){
+        ctx.strokeStyle = colors[currentCol];
+        penicon.style.fill = colors[currentCol];
+    }
 }

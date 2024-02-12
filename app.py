@@ -688,6 +688,11 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         },
                         room=socket_to_info[request.sid].streamer,
                     )
+                    socketio.emit(
+                        'return color',
+                        {'color': socket_to_info[request.sid].htmlcolor},
+                        room=request.sid,
+                    )
         elif command in ["/name", "/nick"]:
             if socket_to_info[request.sid].muted:
                 socketio.emit(
