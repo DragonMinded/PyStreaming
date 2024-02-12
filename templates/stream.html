@@ -552,8 +552,8 @@
                 clearerror();
               }
               add(
-                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew:</div> ' +
-                '<div class="pictochat-drawing" src="' + msg.src + '</img>'
+                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' + 
+                '<img class="pictochat-drawing" src="' + msg.src + '"></img>'
               );
             }
           })
