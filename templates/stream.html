@@ -96,7 +96,7 @@
           <div class="messages"></div>
           <input type="text" class="message" id="message" autocomplete="off" placeholder="Type a message..."/>
           <div id="buttons-container">
-            <input id="sendbutton" type="submit" value="Send"/>
+            <button id="sendbutton" value="Send">Send</button>
             <button id="drawbutton" form="null">Draw</button>
           </div>
           <div id="pictochat-container">
@@ -461,6 +461,19 @@
                 message : message,
               } );
             } );
+
+            //pictochat send
+            $( '#pictochat-send' ).on( 'click', function( e ) {
+              e.preventDefault();
+              let canvas = $( '#pictochat-canvas' );
+              let src = canvas.toDataURL();
+              canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+
+              socket.emit( 'drawing', {
+                src : src,
+              } );
+            } );
+
           });
 
           socket.on( 'connected', function( msg ) {
