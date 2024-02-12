@@ -179,6 +179,7 @@ img.user-type-icon {
   width: 230px;
   height: auto;
   margin: 10px 15px 0px 15px;
+  flex-shrink: 0;
 }
 
 .pictochat-drawing { 
