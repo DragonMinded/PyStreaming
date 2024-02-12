@@ -1060,6 +1060,20 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 room=socket_to_info[request.sid].streamer,
             )
 
+@socketio.on('get color')
+def return_color(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
+    if request.sid not in socket_to_info:
+        socketio.emit('error', {'msg': 'User is not authenticated?'}, room=request.sid)
+        return
+
+    socketio.emit(
+            'return color',
+            {
+                'color': socket_to_info[request.sid].htmlcolor,
+            },
+            room=request.sid,
+        )
+
 @socketio.on('drawing')  # type: ignore
 def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
     if 'src' not in json:
