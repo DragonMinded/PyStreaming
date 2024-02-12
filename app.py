@@ -1060,6 +1060,38 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 room=socket_to_info[request.sid].streamer,
             )
 
+@socketio.on('drawing')  # type: ignore
+def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
+    if 'src' not in json:
+        socketio.emit('error', {'msg': 'Image mssing from JSON?'}, room=request.sid)
+        return
+
+    if request.sid not in socket_to_info:
+        socketio.emit('error', {'msg': 'User is not authenticated?'}, room=request.sid)
+        return
+
+    # Update user presence information
+    socket_to_presence[request.sid] = PresenceInfo(request.sid, socket_to_info[request.sid].streamer)
+
+    src = json['src'].strip()
+
+    if socket_to_info[request.sid].muted:
+            socketio.emit(
+                'server',
+                {'msg': "You are muted!"},
+                room=request.sid,
+            )
+    else:
+        socketio.emit(
+            'drawing received',
+            {
+                'username': socket_to_info[request.sid].username,
+                'type': get_type(socket_to_info[request.sid]),
+                'color': socket_to_info[request.sid].htmlcolor,
+                'src': src,
+            },
+            room=socket_to_info[request.sid].streamer,
+        )
 
 def load_config(filename: str) -> None:
     global config
