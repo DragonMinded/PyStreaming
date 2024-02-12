@@ -21,7 +21,7 @@ var currentCol = 0;
 ctx.strokeStyle = colors[0];
 var isdraw = false;
 
-canvas.addEventListener("mousedown", function(event) {
+canvas.addEventListener("pointerdown", function(event) {
     isdraw = true;
     const x = event.clientX - canvas.offsetLeft;
     const y = event.clientY - canvas.offsetTop;
@@ -29,7 +29,7 @@ canvas.addEventListener("mousedown", function(event) {
     ctx.stroke();
 });
 
-canvas.addEventListener("mousemove", function(event) {
+canvas.addEventListener("pointermove", function(event) {
     if (!isdraw) return;
     const x = event.clientX - canvas.offsetLeft;
     const y = event.clientY - canvas.offsetTop;
@@ -37,12 +37,12 @@ canvas.addEventListener("mousemove", function(event) {
     ctx.stroke();
 });
 
-canvas.addEventListener("mouseup", function(event) {
+canvas.addEventListener("pointerup", function(event) {
     isdraw = false;
     ctx.beginPath();
 });
 
-canvas.addEventListener("mouseout", function(event) {
+canvas.addEventListener("pointerout", function(event) {
     isdraw = false;
     ctx.beginPath();
 });
@@ -57,14 +57,14 @@ clear_butt.addEventListener("click", function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
-send_butt.addEventListener("click", function() {
-    var img = document.createElement("img");
-    img.src = canvas.toDataURL();
-    img.classList = ["pictochat-img"];
-    img.style["outline-color"] = usercolor;
-    document.body.appendChild(img);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-});
+//send_butt.addEventListener("click", function() {
+//    var img = document.createElement("img");
+//    img.src = canvas.toDataURL();
+//    img.classList = ["pictochat-img"];
+//    img.style["outline-color"] = usercolor;
+//    document.body.appendChild(img);
+//    ctx.clearRect(0, 0, canvas.width, canvas.height);
+//});
 
 toggle_butt.addEventListener("click", function() {
     currentCol = (currentCol+1)%colors.length;
