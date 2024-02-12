@@ -165,7 +165,7 @@
 
           // Add some inner HTML to the chat box.
           var add = function( inner ) {
-            var box = $( 'div.messages' );
+            var box = $( '.messages' );
             box.append( '<div class="chat-message">' + inner + '</div>' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
@@ -174,8 +174,8 @@
 
           // Display an error in the user error box at the bottom, mostly for login.
           var displayerror = function( error ) {
-            var box = $( 'div.messages' );
-            $( 'div.error' ).text( error );
+            var box = $( '.messages' );
+            $( '.error' ).text( error );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -183,8 +183,8 @@
 
           // Remove a displayed error in the user error box at the bottom.
           var clearerror = function() {
-            var box = $( 'div.messages' );
-            $( 'div.error' ).text( "" );
+            var box = $( '.messages' );
+            $( '.error' ).text( "" );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -231,11 +231,11 @@
           var info = function() {
             $.get("/" + streamer + "/info", {}, function(response) {
               if (response.live) {
-                $( 'div.stream-count' ).text( 'Number of viewers: ' + response.count );
-                $( 'div.stream-description').html( escapehtml(response.description) );
+                $( '.stream-count' ).text( 'Number of viewers: ' + response.count );
+                $( '.stream-description').html( escapehtml(response.description) );
               } else {
-                $( 'div.stream-count' ).text( '' );
-                $( 'div.stream-description').text( '' );
+                $( '.stream-count' ).text( '' );
+                $( '.stream-description').text( '' );
               }
 
               if (response.live != live) {
@@ -354,14 +354,14 @@
           }
 
           // Hook autoscrolling to being a the bottom of the chat.
-          $('div.messages').scroll(function() {
-            var box = $( 'div.messages' );
+          $('.messages').scroll(function() {
+            var box = $( '.messages' );
             autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
           });
 
           // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
           $(window).resize(function() {
-            var box = $( 'div.messages' );
+            var box = $( '.messages' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }

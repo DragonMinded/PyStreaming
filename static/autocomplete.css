@@ -1,11 +1,11 @@
-div.autocomplete {
+.autocomplete {
     position: aboslute;
     margin: 0px;
     border: 1px solid gray;
     background: #ffffff;
 }
 
-div.autocomplete-element {
+.autocomplete-element {
     overflow: hidden;
     white-space: nowrap;
     margin: 0px;
@@ -13,14 +13,14 @@ div.autocomplete-element {
     align-items: center;
 }
 
-div.autocomplete-additional {
+.autocomplete-additional {
     overflow: hidden;
     white-space: nowrap;
     margin: 0px;
     text-align: center;
 }
 
-div.autocomplete-element.selected {
+.autocomplete-element.selected {
     background: #aaaaaa;
 }
 

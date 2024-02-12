@@ -8,7 +8,7 @@ html, body {
   overflow: hidden;
 }
 
-div.content {
+.content {
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -16,7 +16,7 @@ div.content {
   align-items: stretch;
 }
 
-div.stream-pane {
+.stream-pane {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@ div.stream-pane {
   padding: 5px 0px 5px 5px;
 }
 
-div.stream {
+.stream {
   flex-grow: 1;
 }
 
@@ -32,7 +32,7 @@ div.stream {
   width: 100%;
   height: 100%;
 }
-div.info {
+.info {
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -41,22 +41,22 @@ div.info {
   color: #eeeeee;
 }
 
-div.stream-description {
+.stream-description {
   color: #eeeeee;
   padding-top: 3px;
 }
 
-div.stream-padding {
+.stream-padding {
   flex-grow: 1;
 }
 
-div.stream-count {
+.stream-count {
   color: #eeeeee;
   padding-top: 3px;
   padding-right: 5px;
 }
 
-div.chat-pane {
+.chat-pane {
   padding: 0px 5px 5px 5px;
   width: 250px;
   display: flex;
@@ -76,21 +76,21 @@ div.chat-pane {
   margin-top: 5px;
 }
 
-div.messages, div.blank {
+.messages, .blank {
   flex-grow: 1;
   overflow-y: auto;
 }
 
-div.chat-message {
+.chat-message {
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
-div.error {
+.error {
   color: red;
 }
 
-div.username-prompt {
+.username-prompt {
   padding-bottom: 15px;
   font-style: italic;
 }
@@ -118,7 +118,7 @@ img.user-type-icon {
   margin-bottom: -2px;
 }
 
-div.user-joined, div.user-left, div.user-renamed, div.command-heading, div.user-list, div.user-item, div.server-message, div.chat-heading, div.chat-body, div.chat-action {
+.user-joined, .user-left, .user-renamed, .command-heading, .user-list, .user-item, .server-message, .chat-heading, .chat-body, .chat-action {
   display: inline;
 }
 
