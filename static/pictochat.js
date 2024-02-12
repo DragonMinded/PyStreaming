@@ -71,3 +71,9 @@ toggle_butt.addEventListener("click", function() {
     ctx.strokeStyle = colors[currentCol];
     penicon.style.fill = colors[currentCol];
 });
+
+function updateColor(col){
+    usercolor = col;
+    colors[1] = col;
+    canvas.style["outline-color"] = col;
+}
