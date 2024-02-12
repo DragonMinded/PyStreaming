@@ -465,7 +465,7 @@
             //pictochat send
             $( '#pictochat-send' ).on( 'click', function( e ) {
               e.preventDefault();
-              let canvas = $( '#pictochat-canvas' );
+              let canvas = $( '#pictochat-canvas' )[0];
               let src = canvas.toDataURL();
               canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
 
@@ -543,6 +543,18 @@
                 clearerror();
               }
               add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + highlight(embiggen(escapehtml(msg.message))) + '</div>' );
+            }
+          })
+
+          socket.on( 'drawing received', function( msg ) {
+            if( connected ) {
+              if( msg.username == username ) {
+                clearerror();
+              }
+              add(
+                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew:</div> ' +
+                '<div class="pictochat-drawing" src="' + msg.src + '</img>'
+              );
             }
           })
 
