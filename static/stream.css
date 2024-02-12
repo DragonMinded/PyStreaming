@@ -173,13 +173,16 @@ img.user-type-icon {
   margin: 0px;
 }
 
-#pictochat-canvas, .pictochat-img {
+#pictochat-canvas, .pictochat-drawing {
   outline: 3px solid #333;
   background-color: #f8f8f8;
   width: 230px;
   height: auto;
   margin: 10px 15px 0px 15px;
-  bottom: 0px;
+}
+
+.pictochat-drawing { 
+  margin: 2px 2px 0px 2px;
 }
 
 #pictochat-container {
