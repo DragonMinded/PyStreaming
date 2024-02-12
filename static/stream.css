@@ -179,7 +179,6 @@ img.user-type-icon {
   width: 230px;
   height: auto;
   margin: 10px 15px 0px 15px;
-  flex-shrink: 0;
 }
 
 .pictochat-drawing { 
@@ -194,6 +193,7 @@ img.user-type-icon {
   overflow: hidden;
   margin-left: -5px;
   background-image: url("https://www.transparenttextures.com/patterns/3px-tile.png");
+  flex-shrink: 0;
 }
 
 .pictochat-buttons {
