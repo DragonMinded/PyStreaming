@@ -553,7 +553,7 @@
               }
               add(
                 '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' + 
-                '<img class="pictochat-drawing" src="' + msg.src + '"></img>'
+                '<img class="pictochat-drawing" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
               );
             }
           })
