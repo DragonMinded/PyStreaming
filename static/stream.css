@@ -8,7 +8,7 @@ html, body {
   overflow: hidden;
 }
 
-div.content {
+.content {
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -16,7 +16,7 @@ div.content {
   align-items: stretch;
 }
 
-div.stream-pane {
+.stream-pane {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@ div.stream-pane {
   padding: 5px 0px 5px 5px;
 }
 
-div.stream {
+.stream {
   flex-grow: 1;
 }
 
@@ -32,7 +32,7 @@ div.stream {
   width: 100%;
   height: 100%;
 }
-div.info {
+.info {
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -41,29 +41,30 @@ div.info {
   color: #eeeeee;
 }
 
-div.stream-description {
+.stream-description {
   color: #eeeeee;
   padding-top: 3px;
 }
 
-div.stream-padding {
+.stream-padding {
   flex-grow: 1;
 }
 
-div.stream-count {
+.stream-count {
   color: #eeeeee;
   padding-top: 3px;
   padding-right: 5px;
 }
 
-div.chat-pane {
-  padding: 0px 5px 5px 5px;
+.chat-pane {
+  padding: 0px 5px 0px 5px;
   width: 250px;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   background: #eeeeee;
 }
+
 .chat-inner {
   display: flex;
   flex-direction: column;
@@ -76,21 +77,25 @@ div.chat-pane {
   margin-top: 5px;
 }
 
-div.messages, div.blank {
+#login {
+  margin-bottom: 5px;
+}
+
+.messages, .blank {
   flex-grow: 1;
   overflow-y: auto;
 }
 
-div.chat-message {
+.chat-message {
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
-div.error {
+.error {
   color: red;
 }
 
-div.username-prompt {
+.username-prompt {
   padding-bottom: 15px;
   font-style: italic;
 }
@@ -118,7 +123,7 @@ img.user-type-icon {
   margin-bottom: -2px;
 }
 
-div.user-joined, div.user-left, div.user-renamed, div.command-heading, div.user-list, div.user-item, div.server-message, div.chat-heading, div.chat-body, div.chat-action {
+.user-joined, .user-left, .user-renamed, .command-heading, .user-list, .user-item, .server-message, .chat-heading, .chat-body, .chat-action {
   display: inline;
 }
 
@@ -150,4 +155,74 @@ div.user-joined, div.user-left, div.user-renamed, div.command-heading, div.user-
   border-radius: 10px;
   padding-left: 5px;
   padding-right: 5px;
+}
+
+#sendbutton, #drawbutton {
+  font: "Atkinson Hyperlegible", Arial, Helvetica, sans-serif;
+}
+
+#sendbutton {
+  width: 195px;
+}
+
+#drawbutton {
+  width: 50px;
+}
+
+.error {
+  margin: 0px;
+}
+
+#pictochat-canvas, .pictochat-drawing {
+  outline: 3px solid #333;
+  background-color: #f8f8f8;
+  width: 230px;
+  height: auto;
+  margin: 10px 15px 0px 15px;
+}
+
+.pictochat-drawing { 
+  margin: 2px 2px 0px 2px;
+}
+
+#pictochat-container {
+  background-color: #333;
+  width: 260px;
+  height: 0px;
+  transition: 0.1s ease-in-out;
+  overflow: hidden;
+  margin-left: -5px;
+  background-image: url("https://www.transparenttextures.com/patterns/3px-tile.png");
+  flex-shrink: 0;
+}
+
+.pictochat-buttons {
+  font-family: Atkinson Hyperlegible;
+  color: black;
+  margin: 5px;
+}
+
+#pictochat-send {
+  background-color: #56f988;
+  padding-left: auto;
+}
+
+#pictochat-togglecolor {
+  background-color: #bbb;
+}
+
+#pictochat-clear {
+  background-color: #d66;
+}
+
+#pictochat-pencil {
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  fill: #000;
+}
+
+#pictochat-controls {
+  display: flex;
+  justify-content: center;
 }

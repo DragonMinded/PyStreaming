@@ -95,7 +95,40 @@
         <form class="chat-inner" action="" method="POST" id="chat" style="display: none">
           <div class="messages"></div>
           <input type="text" class="message" id="message" autocomplete="off" placeholder="Type a message..."/>
-          <input type="submit" value="Send"/>
+          <div id="buttons-container">
+            <button id="sendbutton" value="Send">Send</button>
+            <button id="drawbutton" form="null">Draw</button>
+          </div>
+          <div id="pictochat-container">
+            <canvas id="pictochat-canvas" width="230" height="120"></canvas>
+            <br> 
+            <div id="pictochat-controls">
+                <button class="pictochat-buttons" id="pictochat-togglecolor" form="null">
+                    <svg
+                width="16"
+                height="16"
+                viewBox="0 0 4.2333332 4.2333335"
+                version="1.1"
+                id="pictochat-pencil"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:svg="http://www.w3.org/2000/svg">
+                <defs id="defs2" />
+                    <g
+                        id="layer1">
+                        <path
+                        id="pictochat-pencilnib"
+                        style="opacity:1;stroke:none;stroke-width:16.9333;stroke-linecap:round;stroke-linejoin:round;stroke-dashoffset:172.8;paint-order:fill markers stroke;stop-color:#000000"
+                        d="M 3.4395833,2.38125 C 3.1517567,2.3848868 2.8386904,2.4461728 2.630781,2.6609984 2.4320473,2.8653223 2.3771283,3.1642788 2.3812464,3.439574 2.9986087,3.7041604 3.615971,3.9687469 4.2333333,4.2333333 3.96875,3.6159722 3.7041666,2.9986111 3.4395833,2.38125 Z" />
+                        <path
+                        id="pictochat-pencilbody"
+                        style="opacity:1;stroke:none;stroke-width:16.9333;stroke-linecap:round;stroke-linejoin:round;stroke-dashoffset:172.8;paint-order:fill markers stroke;stop-color:#000000"
+                        d="M 1.0583333,1.3333333e-8 C 1.0583333,1.3333333e-8 0.52916667,0 0.26786763,0.2638395 0,0.52916667 0.00127687,1.0020562 0.00127687,1.0020562 c 0,0 1.40969453,1.4672485 2.11538973,2.1729438 1e-7,-0.79375 0.2645834,-1.0583333 1.058339,-1.0583199 z" />
+                    </g>
+                </svg>Swap color!</button>
+                <button class="pictochat-buttons" id="pictochat-clear" form="null">Clear!</button>
+                <button class="pictochat-buttons" id="pictochat-send" form="null">Send!</button>
+            </div>
+        </div>
           <div class="error"></div>
         </form>
 
@@ -121,6 +154,7 @@
             e.preventDefault();
           } );
         </script>
+        <script src="{{ url_for('static', filename='pictochat.js') }}"></script>
         <script type="text/javascript">
           var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
           var username = undefined;
@@ -165,7 +199,7 @@
 
           // Add some inner HTML to the chat box.
           var add = function( inner ) {
-            var box = $( 'div.messages' );
+            var box = $( '.messages' );
             box.append( '<div class="chat-message">' + inner + '</div>' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
@@ -174,8 +208,8 @@
 
           // Display an error in the user error box at the bottom, mostly for login.
           var displayerror = function( error ) {
-            var box = $( 'div.messages' );
-            $( 'div.error' ).text( error );
+            var box = $( '.messages' );
+            $( '.error' ).text( error );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -183,8 +217,8 @@
 
           // Remove a displayed error in the user error box at the bottom.
           var clearerror = function() {
-            var box = $( 'div.messages' );
-            $( 'div.error' ).text( "" );
+            var box = $( '.messages' );
+            $( '.error' ).text( "" );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -231,11 +265,11 @@
           var info = function() {
             $.get("/" + streamer + "/info", {}, function(response) {
               if (response.live) {
-                $( 'div.stream-count' ).text( 'Number of viewers: ' + response.count );
-                $( 'div.stream-description').html( escapehtml(response.description) );
+                $( '.stream-count' ).text( 'Number of viewers: ' + response.count );
+                $( '.stream-description').html( escapehtml(response.description) );
               } else {
-                $( 'div.stream-count' ).text( '' );
-                $( 'div.stream-description').text( '' );
+                $( '.stream-count' ).text( '' );
+                $( '.stream-description').text( '' );
               }
 
               if (response.live != live) {
@@ -354,14 +388,14 @@
           }
 
           // Hook autoscrolling to being a the bottom of the chat.
-          $('div.messages').scroll(function() {
-            var box = $( 'div.messages' );
+          $('.messages').scroll(function() {
+            var box = $( '.messages' );
             autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
           });
 
           // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
           $(window).resize(function() {
-            var box = $( 'div.messages' );
+            var box = $( '.messages' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -380,6 +414,7 @@
                 streamer : streamer,
                 color : color,
               } );
+              updateColor(color);
             } );
 
             ping();
@@ -428,6 +463,19 @@
                 message : message,
               } );
             } );
+
+            //pictochat send
+            $( '#pictochat-send' ).on( 'click', function( e ) {
+              e.preventDefault();
+              let canvas = $( '#pictochat-canvas' )[0];
+              let src = canvas.toDataURL();
+              canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+
+              socket.emit( 'drawing', {
+                src : src,
+              } );
+            } );
+
           });
 
           socket.on( 'connected', function( msg ) {
@@ -499,6 +547,22 @@
               add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + highlight(embiggen(escapehtml(msg.message))) + '</div>' );
             }
           })
+
+          socket.on( 'drawing received', function( msg ) {
+            if( connected ) {
+              if( msg.username == username ) {
+                clearerror();
+              }
+              add(
+                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' + 
+                '<img class="pictochat-drawing" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
+              );
+            }
+          })
+
+          socket.on( 'return color', function( msg ) {
+            updateColor(msg.color);
+          });
 
           socket.on( 'password activated', function( msg ) {
             if( msg.username.toLowerCase() != username.toLowerCase() ) {
