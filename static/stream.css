@@ -212,6 +212,10 @@ img.user-type-icon {
   padding-left: auto;
 }
 
+#pictochat-send:disabled {
+  background-color: #059230;
+}
+
 #pictochat-togglecolor {
   background-color: #bbb;
 }

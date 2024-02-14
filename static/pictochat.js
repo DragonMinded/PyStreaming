@@ -1,5 +1,10 @@
 const show_butt = document.getElementById("drawbutton");
+const clear_butt = document.getElementById("pictochat-clear");
+const send_butt = document.getElementById("pictochat-send");
+const toggle_butt = document.getElementById("pictochat-togglecolor");
+const penicon = document.getElementById("pictochat-pencil");
 const pictowindow = document.getElementById("pictochat-container");
+
 var window_state = false;
 show_butt.addEventListener("click", function() {
     if(window_state){
@@ -37,6 +42,7 @@ canvas.addEventListener("pointermove", function(event) {
     const y = event.clientY - canvas.offsetTop;
     ctx.lineTo(x, y);
     ctx.stroke();
+    $(send_butt).prop("disabled", false);
 });
 
 canvas.addEventListener("pointerup", function(event) {
@@ -49,14 +55,11 @@ canvas.addEventListener("pointerout", function(event) {
     ctx.beginPath();
 });
 
-const clear_butt = document.getElementById("pictochat-clear");
-const send_butt = document.getElementById("pictochat-send");
-const toggle_butt = document.getElementById("pictochat-togglecolor");
-const penicon = document.getElementById("pictochat-pencil");
 penicon.style.fill = colors[currentCol];
 
 clear_butt.addEventListener("click", function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    $(send_butt).prop("disabled", true);
 });
 
 toggle_butt.addEventListener("click", function() {

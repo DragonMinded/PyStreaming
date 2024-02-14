@@ -105,7 +105,7 @@
             <br>
             <div id="pictochat-controls">
                 <button class="pictochat-buttons" id="pictochat-togglecolor" form="null">
-                    <svg
+                <svg
                 width="16"
                 height="16"
                 viewBox="0 0 4.2333332 4.2333335"
@@ -127,7 +127,7 @@
                     </g>
                 </svg>Swap color!</button>
                 <button class="pictochat-buttons" id="pictochat-clear" form="null">Clear!</button>
-                <button class="pictochat-buttons" id="pictochat-send" form="null">Send!</button>
+                <button class="pictochat-buttons" id="pictochat-send" disabled="" form="null">Send!</button>
             </div>
           </div>
         </form>
@@ -470,6 +470,7 @@
               let canvas = $( '#pictochat-canvas' )[0];
               let src = canvas.toDataURL();
               canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+              $("#pictochat-send").prop("disabled", true);
 
               socket.emit( 'drawing', {
                 src : src,
