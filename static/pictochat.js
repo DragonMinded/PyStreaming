@@ -5,9 +5,11 @@ show_butt.addEventListener("click", function() {
     if(window_state){
         pictowindow.style.height = "0px";
         window_state = false;
+        $(show_butt).text("Draw");
     }else{
         pictowindow.style.height = "170px";
         window_state = true;
+        $(show_butt).text("Undraw");
     }
 });
 
