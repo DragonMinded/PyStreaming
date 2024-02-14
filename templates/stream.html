@@ -101,7 +101,7 @@
           </div>
           <div id="pictochat-container">
             <canvas id="pictochat-canvas" width="230" height="120"></canvas>
-            <br> 
+            <br>
             <div id="pictochat-controls">
                 <button class="pictochat-buttons" id="pictochat-togglecolor" form="null">
                     <svg
@@ -154,7 +154,7 @@
             e.preventDefault();
           } );
         </script>
-        <script src="{{ url_for('static', filename='pictochat.js') }}"></script>
+        <script src="{{ url_for('static', filename='pictochat.js') }}?{{ cache_bust }}"></script>
         <script type="text/javascript">
           var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
           var username = undefined;
@@ -199,7 +199,7 @@
 
           // Add some inner HTML to the chat box.
           var add = function( inner ) {
-            var box = $( '.messages' );
+            var box = $( 'div.messages' );
             box.append( '<div class="chat-message">' + inner + '</div>' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
@@ -208,8 +208,8 @@
 
           // Display an error in the user error box at the bottom, mostly for login.
           var displayerror = function( error ) {
-            var box = $( '.messages' );
-            $( '.error' ).text( error );
+            var box = $( 'div.messages' );
+            $( 'div.error' ).text( error );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -217,8 +217,8 @@
 
           // Remove a displayed error in the user error box at the bottom.
           var clearerror = function() {
-            var box = $( '.messages' );
-            $( '.error' ).text( "" );
+            var box = $( 'div.messages' );
+            $( 'div.error' ).text( "" );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -265,11 +265,11 @@
           var info = function() {
             $.get("/" + streamer + "/info", {}, function(response) {
               if (response.live) {
-                $( '.stream-count' ).text( 'Number of viewers: ' + response.count );
-                $( '.stream-description').html( escapehtml(response.description) );
+                $( 'div.stream-count' ).text( 'Number of viewers: ' + response.count );
+                $( 'div.stream-description').html( escapehtml(response.description) );
               } else {
-                $( '.stream-count' ).text( '' );
-                $( '.stream-description').text( '' );
+                $( 'div.stream-count' ).text( '' );
+                $( 'div.stream-description').text( '' );
               }
 
               if (response.live != live) {
@@ -388,14 +388,14 @@
           }
 
           // Hook autoscrolling to being a the bottom of the chat.
-          $('.messages').scroll(function() {
-            var box = $( '.messages' );
+          $('div.messages').scroll(function() {
+            var box = $( 'div.messages' );
             autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
           });
 
           // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
           $(window).resize(function() {
-            var box = $( '.messages' );
+            var box = $( 'div.messages' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
             }
@@ -554,7 +554,7 @@
                 clearerror();
               }
               add(
-                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' + 
+                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
                 '<img class="pictochat-drawing" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
               );
             }

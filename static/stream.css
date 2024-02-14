@@ -77,13 +77,18 @@ html, body {
   margin-top: 5px;
 }
 
-#login {
+#login, #admin {
   margin-bottom: 5px;
 }
 
 .messages, .blank {
   flex-grow: 1;
   overflow-y: auto;
+  padding-right: 5px;
+}
+
+#chat > #message {
+  margin-right: 5px;
 }
 
 .chat-message {

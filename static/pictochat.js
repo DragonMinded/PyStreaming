@@ -57,15 +57,6 @@ clear_butt.addEventListener("click", function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
-//send_butt.addEventListener("click", function() {
-//    var img = document.createElement("img");
-//    img.src = canvas.toDataURL();
-//    img.classList = ["pictochat-img"];
-//    img.style["outline-color"] = usercolor;
-//    document.body.appendChild(img);
-//    ctx.clearRect(0, 0, canvas.width, canvas.height);
-//});
-
 toggle_butt.addEventListener("click", function() {
     currentCol = (currentCol+1)%colors.length;
     ctx.strokeStyle = colors[currentCol];
