@@ -108,17 +108,15 @@ html, body {
 img.emote, img.emoji {
   display: inline-block;
   max-width: 48px;
-  max-height: 16px;
+  height: 16px;
   width: auto;
-  height: auto;
 }
 
 img.emote-big, img.emoji-big {
   display: inline-block;
   max-width: 96px;
-  max-height: 32px;
+  height: 32px;
   width: auto;
-  height: auto;
 }
 
 img.user-type-icon {
@@ -197,7 +195,7 @@ img.user-type-icon {
   transition: 0.1s ease-in-out;
   overflow: hidden;
   margin-left: -5px;
-  background-image: url("https://www.transparenttextures.com/patterns/3px-tile.png");
+  background-image: url("3px-tile.png");
   flex-shrink: 0;
 }
 

@@ -101,7 +101,7 @@
           </div>
           <div class="error"></div>
           <div id="pictochat-container">
-            <canvas id="pictochat-canvas" width="230" height="120"></canvas>
+            <canvas id="pictochat-canvas" width="{{pictochat_image_width}}" height="{{pictochat_image_height}}"></canvas>
             <br>
             <div id="pictochat-controls">
                 <button class="pictochat-buttons" id="pictochat-togglecolor" form="null">
@@ -197,31 +197,32 @@
             return obj.scrollHeight - obj.clientHeight;
           }
 
+          var ensureScrolled = function() {
+            var box = $( 'div.messages' );
+            if (autoscroll) {
+              box[0].scrollTop = scrollTopMax(box[0]) + 1;
+            }
+          }
+
           // Add some inner HTML to the chat box.
           var add = function( inner ) {
             var box = $( 'div.messages' );
             box.append( '<div class="chat-message">' + inner + '</div>' );
-            if (autoscroll) {
-              box[0].scrollTop = scrollTopMax(box[0]) + 1;
-            }
+            ensureScrolled();
           }
 
           // Display an error in the user error box at the bottom, mostly for login.
           var displayerror = function( error ) {
             var box = $( 'div.messages' );
             $( 'div.error' ).text( error );
-            if (autoscroll) {
-              box[0].scrollTop = scrollTopMax(box[0]) + 1;
-            }
+            ensureScrolled();
           }
 
           // Remove a displayed error in the user error box at the bottom.
           var clearerror = function() {
             var box = $( 'div.messages' );
             $( 'div.error' ).text( "" );
-            if (autoscroll) {
-              box[0].scrollTop = scrollTopMax(box[0]) + 1;
-            }
+            ensureScrolled();
           }
 
           var entityMap = {
@@ -393,6 +394,11 @@
             autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
           });
 
+          // Make sure we move the chat after animating pictochat.
+          $('#pictochat-container').on('transitionend webkitTransitionEnd oTransitionEnd', function () {
+            ensureScrolled();
+          });
+
           // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
           $(window).resize(function() {
             var box = $( 'div.messages' );
@@ -453,6 +459,7 @@
             $( '#chat' ).show();
             $( '#message' ).focus()
 
+            // Send chat message.
             $( '#chat' ).on( 'submit', function( e ) {
               e.preventDefault();
 
@@ -464,7 +471,7 @@
               } );
             } );
 
-            //pictochat send
+            // Send pictochat message.
             $( '#pictochat-send' ).on( 'click', function( e ) {
               e.preventDefault();
               let canvas = $( '#pictochat-canvas' )[0];
@@ -476,7 +483,6 @@
                 src : src,
               } );
             } );
-
           });
 
           socket.on( 'connected', function( msg ) {
@@ -556,7 +562,7 @@
               }
               add(
                 '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
-                '<img class="pictochat-drawing" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
+                '<img class="pictochat-drawing" width="{{pictochat_image_width}}" height="{{pictochat_image_height}}" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
               );
             }
           })

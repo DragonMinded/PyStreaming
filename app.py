@@ -21,6 +21,11 @@ from data import Data
 FRONTEND_CACHE_BUST: str = "site.1.0.0"
 
 
+# Pictochat width/height, shared in a couple places.
+PICTOCHAT_IMAGE_WIDTH: int = 230
+PICTOCHAT_IMAGE_HEIGHT: int = 120
+
+
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins='*')
@@ -293,6 +298,8 @@ def stream(streamer: str) -> Response:
             emojis=emojis,
             emotes=emotes,
             icons=icons,
+            pictochat_image_width=PICTOCHAT_IMAGE_WIDTH,
+            pictochat_image_height=PICTOCHAT_IMAGE_HEIGHT,
         )
     )
 
@@ -1107,7 +1114,7 @@ def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             img = Image.open(fp)
             width, height = img.size
 
-            if width != 230 or height != 120:
+            if width != PICTOCHAT_IMAGE_WIDTH or height != PICTOCHAT_IMAGE_HEIGHT:
                 raise ValueError("Invalid image size")
 
         if socket_to_info[request.sid].muted:
