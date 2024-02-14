@@ -4,11 +4,13 @@ import datetime
 import emoji
 import os
 import random
+import urllib.request
 import webcolors  # type: ignore
 import yaml
 from flask import Flask, Request, Response, abort, jsonify, render_template, request as base_request, redirect, make_response, url_for
 from flask_socketio import SocketIO, join_room  # type: ignore
 from flask_cors import CORS  # type: ignore
+from PIL import Image
 from typing import Any, Dict, List, Optional, cast
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -1065,19 +1067,19 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 room=socket_to_info[request.sid].streamer,
             )
 
-@socketio.on('get color')
+
+@socketio.on('get color')  # type: ignore
 def return_color(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
     if request.sid not in socket_to_info:
         socketio.emit('error', {'msg': 'User is not authenticated?'}, room=request.sid)
         return
 
     socketio.emit(
-            'return color',
-            {
-                'color': socket_to_info[request.sid].htmlcolor,
-            },
-            room=request.sid,
-        )
+        'return color',
+        {'color': socket_to_info[request.sid].htmlcolor},
+        room=request.sid,
+    )
+
 
 @socketio.on('drawing')  # type: ignore
 def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> None:
@@ -1094,23 +1096,44 @@ def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
 
     src = json['src'].strip()
 
-    if socket_to_info[request.sid].muted:
+    # Verify that this is a valid picture with the right dimensions (stop arbitrary console-based
+    # picture sending in most cases).
+    try:
+        header, data = src.split(",", 1)
+        if not header.startswith("data:") or not header.endswith("base64"):
+            raise ValueError("Invaid image header")
+
+        with urllib.request.urlopen(src) as fp:
+            img = Image.open(fp)
+            width, height = img.size
+
+            if width != 230 or height != 120:
+                raise ValueError("Invalid image size")
+
+        if socket_to_info[request.sid].muted:
             socketio.emit(
                 'server',
                 {'msg': "You are muted!"},
                 room=request.sid,
             )
-    else:
+        else:
+            socketio.emit(
+                'drawing received',
+                {
+                    'username': socket_to_info[request.sid].username,
+                    'type': get_type(socket_to_info[request.sid]),
+                    'color': socket_to_info[request.sid].htmlcolor,
+                    'src': src,
+                },
+                room=socket_to_info[request.sid].streamer,
+            )
+    except ValueError:
         socketio.emit(
-            'drawing received',
-            {
-                'username': socket_to_info[request.sid].username,
-                'type': get_type(socket_to_info[request.sid]),
-                'color': socket_to_info[request.sid].htmlcolor,
-                'src': src,
-            },
-            room=socket_to_info[request.sid].streamer,
+            'server',
+            {'msg': "Invalid drawing received!"},
+            room=request.sid,
         )
+
 
 def load_config(filename: str) -> None:
     global config
