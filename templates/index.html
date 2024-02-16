@@ -5,7 +5,9 @@
     <style>
       @font-face {
         font-family: "Atkinson Hyperlegible";
+        src: url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.otf') }}") format("opentype");
         src: url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.ttf') }}") format("truetype");
+        src: url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.woff') }}") format("woff");
       }
     </style>
     <link href="{{ url_for('static', filename='frontpage.css') }}?{{ cache_bust }}" rel="stylesheet" />
