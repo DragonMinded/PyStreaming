@@ -240,7 +240,7 @@ def index() -> str:
             'description': emotes(result['description']) if result['description'] else '',
             'locked': result['streampass'] is not None,
         }
-        for result in cursor.fetchall()
+        for result in cursor
     ]
     return render_template('index.html', streamers=streamers)
 
@@ -284,7 +284,7 @@ def stream(streamer: str) -> Response:
     cursor = mysql().execute(
         "SELECT alias, uri FROM emotes ORDER BY alias",
     )
-    emotes = {f":{result['alias']}:": result['uri'] for result in cursor.fetchall()}
+    emotes = {f":{result['alias']}:": result['uri'] for result in cursor}
     icons = {
         'admin': url_for('static', filename='admin.png'),
         'moderator': url_for('static', filename='moderator.png'),
@@ -541,7 +541,7 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
         socketio.emit('error', {'msg': 'Username cannot be blank'}, room=request.sid)
         return
 
-    if len(json['username']) >= 30:
+    if messagelength(json['username']) > 20:
         socketio.emit('error', {'msg': 'Username cannot be that long'}, room=request.sid)
         return
 
@@ -602,6 +602,21 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
 
 def emotes(msg: str) -> str:
     return emoji.emojize(emoji.emojize(msg, language="alias"), language="en")
+
+
+def messagelength(msg: str) -> int:
+    # First, easy conversions.
+    msg = emotes(msg)
+
+    # Now, look up configured emoji aliases.
+    cursor = mysql().execute(
+        "SELECT alias FROM emotes ORDER BY alias",
+    )
+    for result in cursor:
+        msg = msg.replace(f":{result['alias']}:", "*")
+
+    # Now, return the length, where each emoji and emote counts as one character.
+    return len(msg)
 
 
 @socketio.on('message')  # type: ignore
@@ -713,7 +728,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 # Set a new name
                 name = message.strip()
 
-                if len(name) >= 30:
+                if messagelength(name) > 20:
                     socketio.emit(
                         'server',
                         {'msg': 'Too long of a name specified, try a different name.'},
