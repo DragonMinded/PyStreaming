@@ -41,7 +41,7 @@
             controls
             autoplay
             preload="auto"
-            data-setup='{"html5":{"vhs":{"overrideNative":true},"nativeAudioTracks":false,"nativeVideoTracks":false}}'
+            data-setup='{"html5":{"vhs":{"overrideNative":true},"nativeAudioTracks":false,"nativeVideoTracks":false},"liveui":true}'
           >
             {% for playlist in playlists %}
               <source src="{{playlist.src}}" label="{{playlist.label}}" type="{{playlist.type}}" />
