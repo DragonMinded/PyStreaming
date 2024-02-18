@@ -789,7 +789,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     {'msg': message},
                     room=request.sid,
                 )
-        elif command in ["/users"]:
+        elif command in ["/users", "/userlist", "/names"]:
             socketio.emit(
                 'userlist',
                 {'users': users_in_room(socket_to_info[request.sid].streamer)},
