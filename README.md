@@ -124,9 +124,9 @@ rtmp {
             # delays, you can reduce this down to 1s.
             hls_fragment 3s;
 
-            # How much playback buffer we keep around. If you are experiencing large
-            # stream delays, you can reduce this down to 10s. Be sure to adjust the
-            # hls_playlist_length option in config.yaml to match!
+            # How much playback buffer we keep around. If this is too short, there
+            # will be no live replay buffer available in the video player. Should
+            # be a multiple of the hls_fragment length above.
             hls_playlist_length 30s;
         }
     }
@@ -227,9 +227,9 @@ rtmp {
             # delays, you can reduce this down to 1s.
             hls_fragment 3s;
 
-            # How much playback buffer we keep around. If you are experiencing large
-            # stream delays, you can reduce this down to 10s. Be sure to adjust the
-            # hls_playlist_length option in config.yaml to match!
+            # How much playback buffer we keep around. If this is too short, there
+            # will be no live replay buffer available in the video player. Should
+            # be a multiple of the hls_fragment length above.
             hls_playlist_length 30s;
         }
     }

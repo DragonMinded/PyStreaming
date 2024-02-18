@@ -122,7 +122,7 @@ def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
         return False
 
     delta = now() - modified(m3u8)
-    if delta >= int(config['hls_playlist_length']):
+    if delta >= int(config.get('live_indicator_delay', 5)):
         return False
 
     return True
