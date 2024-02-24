@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 import alembic.config
 from alembic.migration import MigrationContext
-from alembic.autogenerate import compare_metadata  # type: ignore
+from alembic.autogenerate import compare_metadata
 from sqlalchemy import Table, Column, MetaData, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.engine import Engine, Result  # type: ignore
@@ -102,7 +102,7 @@ class Data:
         ]
         alembicArgs.extend(args)
         os.chdir(base_dir)
-        alembic.config.main(argv=alembicArgs)  # type: ignore
+        alembic.config.main(argv=alembicArgs)
 
     def create(self) -> None:
         """

@@ -7,12 +7,23 @@ from data import Data, DBCreateException
 
 
 def create(config: Dict[str, Any]) -> None:
+    """
+    Given a config pointing at a valid MySQL DB, initializes that DB by creating all required tables.
+    """
+
     data = Data(config)
     data.create()
     data.close()
 
 
 def generate(config: Dict[str, Any], message: Optional[str], allow_empty: bool) -> None:
+    """
+    Given some changes to the table definitions in the SQL files of this repo, and a config pointing
+    at a valid MySQL DB that has previously been initialized and then upgraded to the base revision
+    of the repo before modification, generates a migration that will allow a production instance to
+    auto-upgrade their DB to mirror your changes.
+    """
+
     if message is None:
         raise Exception('Please provide a message!')
     data = Data(config)
@@ -21,12 +32,23 @@ def generate(config: Dict[str, Any], message: Optional[str], allow_empty: bool) 
 
 
 def upgrade(config: Dict[str, Any]) -> None:
+    """
+    Given a config pointing at a valid MySQL DB that's been created already, runs any pending migrations
+    that were checked in since you last ran create or migrate.
+    """
+
     data = Data(config)
     data.upgrade()
     data.close()
 
 
 def addstreamer(config: Dict[str, Any], username: Optional[str], key: Optional[str]) -> None:
+    """
+    Given a valid config pointing at a working DB, a username and a key, add a streamer to the network
+    identified by that username who will use that key to authenticate on their stream page and as their
+    stream key when sending stream data to the RTMP endpoint.
+    """
+
     if username is None:
         raise Exception('Please provide a username!')
     if key is None:
@@ -40,6 +62,11 @@ def addstreamer(config: Dict[str, Any], username: Optional[str], key: Optional[s
 
 
 def dropstreamer(config: Dict[str, Any], username: Optional[str]) -> None:
+    """
+    Given a valid config pointing at a working DB and a username of an existing user, drop that streamer
+    from the network.
+    """
+
     if username is None:
         raise Exception('Please provide a username!')
     data = Data(config)
@@ -51,6 +78,10 @@ def dropstreamer(config: Dict[str, Any], username: Optional[str]) -> None:
 
 
 def liststreamers(config: Dict[str, Any]) -> None:
+    """
+    Given a valid config pointing at a working DB, lists all active streamers on the network.
+    """
+
     data = Data(config)
     cursor = data.execute("SELECT username FROM streamersettings")
     for result in cursor.fetchall():
@@ -59,6 +90,11 @@ def liststreamers(config: Dict[str, Any]) -> None:
 
 
 def streamdescription(config: Dict[str, Any], username: Optional[str], description: Optional[str]) -> None:
+    """
+    Given a valid config and a valid streamer username, updates that streamer's active stream description
+    to match the provided descrption.
+    """
+
     if username is None:
         raise Exception('Please provide a username!')
     data = Data(config)
@@ -70,6 +106,12 @@ def streamdescription(config: Dict[str, Any], username: Optional[str], descripti
 
 
 def streampassword(config: Dict[str, Any], username: Optional[str], password: Optional[str]) -> None:
+    """
+    Given a valid config and a valid streamer username, updates that streamer's viewer password for
+    their stream. Note that this is not the same as the stream key, but something that you can set
+    to force users to authenticate before watching.
+    """
+
     if username is None:
         raise Exception('Please provide a username!')
     data = Data(config)
@@ -81,6 +123,12 @@ def streampassword(config: Dict[str, Any], username: Optional[str], password: Op
 
 
 def addemote(config: Dict[str, Any], alias: Optional[str], uri: Optional[str]) -> None:
+    """
+    Given a valid config and an emote alias and a URI where that emote can be found, adds the emotes
+    to the list of valid emotes/emojis on the server. The URI can be a valid full URI to a site,
+    or can be a relative path to the root of your live instance pointing at static resources you host.
+    """
+
     if alias is None:
         raise Exception('Please provide an alias!')
     if uri is None:
@@ -96,6 +144,11 @@ def addemote(config: Dict[str, Any], alias: Optional[str], uri: Optional[str]) -
 
 
 def dropemote(config: Dict[str, Any], alias: Optional[str]) -> None:
+    """
+    Given a valid config and an emote alias, drops that emote from the list of emotes/emojis that
+    are allowed on the server. Note that this cannot delete default emojis.
+    """
+
     if alias is None:
         raise Exception('Please provide an alias!')
     if ':' in alias:
@@ -109,6 +162,10 @@ def dropemote(config: Dict[str, Any], alias: Optional[str]) -> None:
 
 
 def listemotes(config: Dict[str, Any]) -> None:
+    """
+    Given a valid config, lists all custom emotes that are supported on the server.
+    """
+
     data = Data(config)
     cursor = data.execute("SELECT alias, uri FROM emotes")
     for result in cursor.fetchall():
