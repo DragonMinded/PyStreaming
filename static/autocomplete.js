@@ -127,13 +127,36 @@ function autocomplete( selector, items ) {
         }
         curend = curpos;
 
-        // Show if we are @ing somebody, or if we have at least 2 characters matching an emote, or if we are 2 or greater in length.
-        if((word.startsWith(":") && word.length > 2) || word.startsWith('@') || (!word.startsWith(':') && word.length > 1))
+        // Show if we are @ing somebody, or if we have at least 2 characters matching an emote.
+        if((word.startsWith(":") && word.length > 2) || word.startsWith('@'))
         {
             word = word.toLowerCase();
+
+            // First, give us our exact matches.
             matches = items.filter(function(item) {
                 return item.text.toLowerCase().startsWith(word);
             });
+
+            // Now, look up any partial matches if we're doing emoji lookup.
+            var noColonPrefix = word.substring(1);
+            partials = (word.startsWith(":") && !word.endsWith(":") && noColonPrefix.length > 0) ? items.filter(function(item) {
+                // First, ignore anything that isn't an emoji.
+                if (!item.text.startsWith(":") || !item.text.endsWith(":")) {
+                    return false;
+                }
+
+                // Now, partial match.
+                var wordBit = item.text.substring(1, item.text.length - 1);
+                return wordBit.includes(noColonPrefix);
+            }) : [];
+
+            // Finally, remove from partials anything that was in the matches list.
+            partials = partials.filter(function(partial) {
+                return !matches.includes(partial);
+            });
+
+            // And now, concatenate so they take lower precedence.
+            matches = matches.concat(partials);
 
             if (matches.length > 0)
             {
