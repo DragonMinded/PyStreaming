@@ -2,8 +2,10 @@ A simple web frontend that works in tandem with nginx-rtmp-module to provide a
 streaming web site. A compatible RTMP video streaming source such as OBS can
 send video and audio to an RTMP endpoint served by nginx and the stream will
 show up for clients on a web page with included stream chat. There are simple
-moderation commands such as mute available, live presence indication and a
-layer that ensures stream keys are never exposed publicly.
+moderation commands such as mute and rename available, live presence indication
+and a layer that ensures stream keys are never exposed publicly. Streams can be
+password-protected against arbitrary viewership. The stream chat allows for cusom
+emoji to be added as well as simple pictochat-style drawings to be submitted.
 
 # Setup
 
@@ -35,7 +37,7 @@ the settings in your `config.yaml` file. If you don't know how to do this, see
 Once your database is set up, run the following command to hydrate the database:
 
 ```
-python3 manage.py --config config.yaml create
+python3 manage.py --config config.yaml database create
 ```
 
 If you've renamed your `config.yaml` file, substitute that new name in the above
@@ -44,7 +46,7 @@ You do not have any authorized streamers, however. To add a streamer whose usern
 is "test" and whose stream key is "secretkey", run the following command:
 
 ```
-python3 manage.py --config config.yaml addstreamer --user test --key secretkey
+python3 manage.py --config config.yaml streamer add --user test --key secretkey
 ```
 
 You can substitute for your own username and secret key here. Again, if you renamed
@@ -53,11 +55,14 @@ your `config.yaml` file, substitute that new name in the above command.
 ## Management
 
 The `manage.py` script is where you will do all of your database management. Run
-the script with `--help` to see available commands. You can add streamers, remove
-them, list them, upgrade the database on a new version of this code and generate
-migration scripts if you have modified the database schema and wish to make a pull
-request. Make sure that you always give it the `config.yaml` that you have
-customized in order to operate on the correct database.
+the script with `--help` to see available commands. In the streamer sub-command
+you can add streamers, remove them, list them, modify streamer parameters such as
+stream password, streamer key and stream description. In the database sub-command
+you can upgrade the database on a new version of this code and generate migration
+scripts if you have modified the database schema and wish to make a pull request.
+In the emoji sub-command you can add new custom emoji, remove existing ones and list
+the custom emoji available. Make sure that you always give it the `config.yaml`
+that you have customized in order to operate on the correct database.
 
 ## Running
 
@@ -394,13 +399,20 @@ chat as `test`. You will be asked to provide the stream key `secretkey` in order
 authenticate. Once you are connected to chat, type `/help` into the chat box to see
 available commands. You can assign moderators to help you moderate if you wish. Stream
 hosts and moderators can mute users, and stream hosts can change the description.
-All users can chat and use actions with `/me`.
+Stream hosts and moderators can rename users as well, in case they choose a naughty name.
+All users can chat and use actions with `/me`. Similarly, all users can change their
+color with `/color` and rename themselves with `/name`. Drawings can be submitted by
+clicking the "Draw" button and sketching something cute. Standard and custom emoji can
+be inserted by surrounding the name of the emoji with ":" characters. Note that starting
+a word with ":" will pop up an emoji type-ahead search. Similarly, starting a word with
+"@" will pop up a username type-ahead search.
 
 # Future Enhancements
 
- * Kick and ban fron chat feature based on client IP. Not currently necessary but might become so.
+ * Kick and ban from chat feature based on client IP. Not currently necessary but might become so.
  * Persistent username/account feature. Not sure how desirable this is, but its an option.
  * Word filtering support for chat. Not currently necessary but I'm sure it will end up being needed.
  * Rate limiting for chat actions. Not currently necessary but I'm sure that it will end up being needed.
  * Better front page with streamer highlights and such.
  * Better mobile support across the board.
+ * Multi-theme support and theme selection.
