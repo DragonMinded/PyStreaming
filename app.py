@@ -769,9 +769,9 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 "The following commands are recognized:",
                 "/help - show this message",
                 "/users - show the currently chatting users",
-                "/me - perform an action",
-                "/color - set the color of your name in chat",
-                "/name - change your name to a new one",
+                "/me <action> - perform an action",
+                "/color <color> - set the color of your name in chat",
+                "/name <new name> - change your name to a new one",
             ]
             if socket_to_info[request.sid].admin:
                 messages.append("/settings - display all stream settings")
