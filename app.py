@@ -18,7 +18,7 @@ from data import Data
 
 
 # Allow cache-busting of entire frontend for stream page and chat updates.
-FRONTEND_CACHE_BUST: str = "site.1.0.4"
+FRONTEND_CACHE_BUST: str = "site.1.0.5"
 
 
 # Pictochat width/height, shared in a couple places.
