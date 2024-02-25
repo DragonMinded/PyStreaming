@@ -826,7 +826,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 else:
                     socketio.emit(
                         'server',
-                        {'msg': "No stream descrption"},
+                        {'msg': "No stream description"},
                         room=request.sid,
                     )
                 if result['streampass']:
@@ -853,26 +853,44 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             message = message.strip().lower()
             for sinfo in socket_to_info.values():
                 if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
-                    changed = (sinfo.muted is False)
-                    sinfo.muted = True
-
-                    if changed:
+                    if sinfo.admin:
+                        # Stop admins from softlocking themselves, stop mods from muting admin.
                         socketio.emit(
                             'server',
-                            {'msg': f"User '{message}' has been muted."},
+                            {'msg': f"User '{message}' cannot be muted."},
                             room=request.sid,
                         )
+                    elif sinfo.moderator and socket_to_info[request.sid].moderator:
+                        # Stop mods from being able to mute each other, only an admin can mute a mod.
                         socketio.emit(
                             'server',
-                            {'msg': "You have been muted."},
-                            room=sinfo.sid,
+                            {'msg': f"User '{message}' cannot be muted."},
+                            room=request.sid,
                         )
                     else:
-                        socketio.emit(
-                            'server',
-                            {'msg': f"User '{message}' is already muted."},
-                            room=request.sid,
-                        )
+                        # User has permission to mute, reply with the status.
+                        changed = (sinfo.muted is False)
+                        sinfo.muted = True
+
+                        if changed:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' has been muted."},
+                                room=request.sid,
+                            )
+                            socketio.emit(
+                                'server',
+                                {'msg': "You have been muted."},
+                                room=sinfo.sid,
+                            )
+                        else:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' is already muted."},
+                                room=request.sid,
+                            )
+
+                    # We found our guy, let's bail.
                     break
             else:
                 socketio.emit(
@@ -892,26 +910,44 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             message = message.strip().lower()
             for sinfo in socket_to_info.values():
                 if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
-                    changed = (sinfo.muted is True)
-                    sinfo.muted = False
-
-                    if changed:
+                    if sinfo.admin:
+                        # This should never happen, but let's guard against it anyway.
                         socketio.emit(
                             'server',
-                            {'msg': f"User '{message}' has been unmuted."},
+                            {'msg': f"User '{message}' cannot be unmuted."},
                             room=request.sid,
                         )
+                    elif sinfo.moderator and socket_to_info[request.sid].moderator:
+                        # Stop mods from being able to unmute each other, only an admin can unmute a mod.
                         socketio.emit(
                             'server',
-                            {'msg': "You have been unmuted."},
-                            room=sinfo.sid,
+                            {'msg': f"User '{message}' cannot be unmuted."},
+                            room=request.sid,
                         )
                     else:
-                        socketio.emit(
-                            'server',
-                            {'msg': f"User '{message}' is not muted."},
-                            room=request.sid,
-                        )
+                        # User has permission to unmute, reply with the status.
+                        changed = (sinfo.muted is True)
+                        sinfo.muted = False
+
+                        if changed:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' has been unmuted."},
+                                room=request.sid,
+                            )
+                            socketio.emit(
+                                'server',
+                                {'msg': "You have been unmuted."},
+                                room=sinfo.sid,
+                            )
+                        else:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' is not muted."},
+                                room=request.sid,
+                            )
+
+                    # We found our guy, let's bail.
                     break
             else:
                 socketio.emit(
@@ -931,26 +967,36 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             message = message.strip().lower()
             for sinfo in socket_to_info.values():
                 if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
-                    changed = (sinfo.moderator is False)
-                    sinfo.moderator = True
-
-                    if changed:
+                    if sinfo.admin:
+                        # Admins shouldn't be able to set themselves or each other as mods.
                         socketio.emit(
                             'server',
-                            {'msg': f"User '{message}' has been promoted to moderator."},
+                            {'msg': f"User '{message}' cannot be promoted to moderator."},
                             room=request.sid,
-                        )
-                        socketio.emit(
-                            'server',
-                            {'msg': "You have been promoted to moderator."},
-                            room=sinfo.sid,
                         )
                     else:
-                        socketio.emit(
-                            'server',
-                            {'msg': f"User '{message}' is already a moderator."},
-                            room=request.sid,
-                        )
+                        # We're good.
+                        changed = (sinfo.moderator is False)
+                        sinfo.moderator = True
+
+                        if changed:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' has been promoted to moderator."},
+                                room=request.sid,
+                            )
+                            socketio.emit(
+                                'server',
+                                {'msg': "You have been promoted to moderator."},
+                                room=sinfo.sid,
+                            )
+                        else:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' is already a moderator."},
+                                room=request.sid,
+                            )
+
                     break
             else:
                 socketio.emit(
@@ -970,26 +1016,37 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             message = message.strip().lower()
             for sinfo in socket_to_info.values():
                 if sinfo.username.lower() == message and sinfo.streamer == socket_to_info[request.sid].streamer:
-                    changed = (sinfo.moderator is True)
-                    sinfo.moderator = False
-
-                    if changed:
+                    if sinfo.admin:
+                        # Admins shouldn't be able to set themselves or each other as mods, so this should never
+                        # happen. But, guard against it anyway.
                         socketio.emit(
                             'server',
-                            {'msg': f"User '{message}' has been demoted from moderator."},
+                            {'msg': f"User '{message}' cannot be demoted from moderator."},
                             room=request.sid,
-                        )
-                        socketio.emit(
-                            'server',
-                            {'msg': "You have been demoted from moderator."},
-                            room=sinfo.sid,
                         )
                     else:
-                        socketio.emit(
-                            'server',
-                            {'msg': f"User '{message}' is not a moderator."},
-                            room=request.sid,
-                        )
+                        # We're good.
+                        changed = (sinfo.moderator is True)
+                        sinfo.moderator = False
+
+                        if changed:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' has been demoted from moderator."},
+                                room=request.sid,
+                            )
+                            socketio.emit(
+                                'server',
+                                {'msg': "You have been demoted from moderator."},
+                                room=sinfo.sid,
+                            )
+                        else:
+                            socketio.emit(
+                                'server',
+                                {'msg': f"User '{message}' is not a moderator."},
+                                room=request.sid,
+                            )
+
                     break
             else:
                 socketio.emit(
