@@ -782,6 +782,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             if socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator:
                 messages.append("/mute <user> - mute user")
                 messages.append("/unmute <user> - unmute user")
+                messages.append("/rename <user> <new name> - rename user")
 
             for message in messages:
                 socketio.emit(
@@ -1047,6 +1048,86 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                                 room=request.sid,
                             )
 
+                    break
+            else:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized user '{message}'"},
+                    room=request.sid,
+                )
+        elif command in ["/rename"]:
+            if not (socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator):
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            message = message.strip()
+            matcher = message.lower()
+            for sinfo in socket_to_info.values():
+                if matcher.startswith(sinfo.username.lower()) and sinfo.streamer == socket_to_info[request.sid].streamer:
+                    new_name = message[len(sinfo.username.lower()):]
+                    if bool(new_name) and new_name[0] != ' ':
+                        # This was a partial match, skip it.
+                        continue
+                    new_name = new_name.strip()
+
+                    if not new_name:
+                        socketio.emit(
+                            'server',
+                            {'msg': f"Unspecified new username for user '{matcher}'"},
+                            room=request.sid,
+                        )
+                    elif messagelength(new_name) > 20:
+                        socketio.emit(
+                            'server',
+                            {'msg': 'Too long of a name specified, try a different name.'},
+                            room=request.sid,
+                        )
+                    else:
+                        for user in users_in_room(socket_to_info[request.sid].streamer):
+                            if user['username'].lower() == new_name.lower():
+                                socketio.emit(
+                                    'server',
+                                    {'msg': 'Name has already been taken, try a different name.'},
+                                    room=request.sid,
+                                )
+                                break
+                        else:
+                            old = sinfo.username
+                            if sinfo.admin:
+                                # Nobody with admin or mod powers should be able to rename an admin.
+                                socketio.emit(
+                                    'server',
+                                    {'msg': f"User '{old.lower()}' cannot be renamed."},
+                                    room=request.sid,
+                                )
+                            elif sinfo.moderator and socket_to_info[request.sid].moderator:
+                                # Stop mods from being able to rename each other, only an admin can rename a mod.
+                                socketio.emit(
+                                    'server',
+                                    {'msg': f"User '{old.lower()}' cannot be renamed."},
+                                    room=request.sid,
+                                )
+                            else:
+                                # User has permission to rename another user, let's execute it.
+                                sinfo.username = new_name
+
+                                socketio.emit(
+                                    'rename',
+                                    {
+                                        'newname': new_name,
+                                        'oldname': old,
+                                        'type': get_type(sinfo),
+                                        'color': sinfo.htmlcolor,
+                                        'users': users_in_room(socket_to_info[request.sid].streamer),
+                                    },
+                                    room=socket_to_info[request.sid].streamer,
+                                )
+
+                    # We found our guy, let's bail.
                     break
             else:
                 socketio.emit(
