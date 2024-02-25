@@ -294,7 +294,7 @@
           // capitalization. This allows your own name to be highlighted without rewriting how somebody
           // wrote the message.
           var highlight = function(msg) {
-            var actualuser = embiggen(escapehtml(username)).toLowerCase();
+            var actualuser = escapehtml(username).toLowerCase();
 
             if( msg.length < actualuser.length ) {
               return msg;
@@ -543,7 +543,7 @@
               }
               add(
                 '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
-                '<div class="chat-body">' + highlight(embiggen(escapehtml(msg.message))) + '</div>'
+                '<div class="chat-body">' + embiggen(highlight(escapehtml(msg.message))) + '</div>'
               );
             }
           })
@@ -553,7 +553,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + highlight(embiggen(escapehtml(msg.message))) + '</div>' );
+              add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + embiggen(highlight(escapehtml(msg.message))) + '</div>' );
             }
           })
 
