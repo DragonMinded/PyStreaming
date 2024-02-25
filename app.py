@@ -817,11 +817,18 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 )
             else:
                 result = cursor.fetchone()
-                socketio.emit(
-                    'server',
-                    {'msg': f"Description: {result['description']}"},
-                    room=request.sid,
-                )
+                if result['streampass']:
+                    socketio.emit(
+                        'server',
+                        {'msg': f"Description: {result['description']}"},
+                        room=request.sid,
+                    )
+                else:
+                    socketio.emit(
+                        'server',
+                        {'msg': "No stream descrption"},
+                        room=request.sid,
+                    )
                 if result['streampass']:
                     socketio.emit(
                         'server',
