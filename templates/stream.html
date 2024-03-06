@@ -254,6 +254,44 @@
             return str;
           }
 
+          // Given an HTML color code, calculates that color's relative luminance
+          // Returned luminance value is on a scale from 0 to 1
+          var colorLuminance = function(color) {
+              const rgb = Object.freeze({
+                RED: 0,
+                GREEN: 1,
+                BLUE: 2
+              });
+              
+              const channels = [0, 0, 0];
+              for (let i = 0; i < 3; ++i) {
+                channels[i] = parseInt(color.slice( (i*2)+1 , ((i+1)*2)+1  ), 16);
+                channels[i] /= 255;
+                
+                if(channels[i] <= 0.04045){
+                  channels[i] /= 12.92;
+                } else {
+                  channels[i] = ((channels[i]+0.055)/1.055) ** 2.4;
+                }
+              }
+
+              let luminance = 0.2126 * channels[rgb.RED] + 0.7152 * channels[rgb.GREEN] + 0.0722 * channels[rgb.BLUE];
+
+              return luminance;
+          }
+          
+          // Given an HTML color code for a text color, determines if that text color
+          // deserves the CSS class for dark user text colors, or the CSS class for
+          // light user text colors.
+          var colorLuminanceClass = function(color) {
+              let lumiThreshold = 0.5; // Defines the relative luminance threshold for considering a color light
+              if ( colorLuminance(color) >= lumiThreshold ) {
+                  return "light-user-text-color";
+              } else {
+                  return "dark-user-text-color";
+              }
+          }
+
           // Keep the socket alive, and allow accurate view counts for the stream.
           var ping = function() {
             socket.emit( 'presence', {
@@ -370,7 +408,7 @@
           var userify = function( user, color ) {
               var usecolor = color || false;
               if (usecolor) {
-                  return '<div class="user-item" style="color: ' + color + '">' + user + '</div>';
+                  return '<div class="user-item ' + colorLuminanceClass(color) + '" style="color: ' + color + '">' + user + '</div>';
               } else {
                   return '<div class="user-item">' + user + '</div>';
               }
@@ -489,7 +527,7 @@
 
           socket.on( 'connected', function( msg ) {
             if( connected ) {
-              add( '<div class="user-joined" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>' );
+              add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>' );
             }
             if( msg.username == username && !connected ) {
               var userlist = msg.users.map(function(user) {
@@ -511,7 +549,7 @@
 
           socket.on( 'disconnected', function( msg ) {
             if( connected ) {
-              add( '<div class="user-left" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>' );
+              add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>' );
             }
             users = msg.users;
             updateusers();
@@ -528,7 +566,7 @@
           })
 
           socket.on( 'rename', function( msg ) {
-            add( '<div class="user-renamed" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>' );
+            add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>' );
             if (msg.oldname == username) {
                 username = msg.newname;
             }
@@ -542,7 +580,7 @@
                 clearerror();
               }
               add(
-                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
+                '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
                 '<div class="chat-body">' + embiggen(highlight(escapehtml(msg.message))) + '</div>'
               );
             }
@@ -553,7 +591,7 @@
               if( msg.username == username ) {
                 clearerror();
               }
-              add( '<div class="chat-action" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + embiggen(highlight(escapehtml(msg.message))) + '</div>' );
+              add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + embiggen(highlight(escapehtml(msg.message))) + '</div>' );
             }
           })
 
@@ -563,7 +601,7 @@
                 clearerror();
               }
               add(
-                '<div class="chat-heading" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
+                '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
                 '<img class="pictochat-drawing" width="{{pictochat_image_width}}" height="{{pictochat_image_height}}" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
               );
             }
