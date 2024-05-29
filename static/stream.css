@@ -87,8 +87,29 @@ html, body {
   padding-right: 5px;
 }
 
-#chat > #message {
+.message-input {
   margin-right: 5px;
+  position: relative;
+  display: inherit;
+}
+
+.message-input > input {
+  width: 100%;
+}
+
+.new-messages-alert {
+  display: none;
+  position: absolute;
+  top: -35px;
+  width: 125px;
+  margin-left: auto;
+  margin-right: auto;
+  left: 0;
+  right: 0;
+  text-align: center;
+  background-color: #bf32a9;
+  color: #fff;
+  border-radius: 10px;
 }
 
 .chat-message {
@@ -101,7 +122,6 @@ html, body {
 }
 
 .username-prompt {
-  padding-bottom: 15px;
   font-style: italic;
 }
 

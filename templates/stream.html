@@ -96,7 +96,10 @@
 
         <form class="chat-inner" action="" method="POST" id="chat" style="display: none">
           <div class="messages"></div>
-          <input type="text" class="message" id="message" autocomplete="off" placeholder="Type a message..."/>
+          <div class="message-input">
+            <div class="new-messages-alert">new messages</div>
+            <input type="text" class="message" id="message" autocomplete="off" placeholder="Type a message..."/>
+          </div>
           <div id="buttons-container">
             <button id="sendbutton" value="Send">Send</button>
             <button id="drawbutton" form="null">Draw</button>
@@ -203,6 +206,8 @@
             var box = $( 'div.messages' );
             if (autoscroll) {
               box[0].scrollTop = scrollTopMax(box[0]) + 1;
+            } else {
+              $( 'div.new-messages-alert' ).css( 'display', 'inline-block' );
             }
           }
 
@@ -432,6 +437,9 @@
           $('div.messages').scroll(function() {
             var box = $( 'div.messages' );
             autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
+            if (autoscroll) {
+              $( 'div.new-messages-alert' ).css( 'display', 'none' );
+            }
           });
 
           // Make sure we move the chat after animating pictochat.
