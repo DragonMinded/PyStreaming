@@ -10,6 +10,10 @@ class CLIException(Exception):
     pass
 
 
+class CommandException(Exception):
+    pass
+
+
 def create(config: Dict[str, Any]) -> None:
     """
     Given a config pointing at a valid MySQL DB, initializes that DB by creating all required tables.
@@ -144,11 +148,17 @@ def addemote(config: Dict[str, Any], alias: str, uri: str) -> None:
     if any(not (c.isalnum() or c == "_" or c == "-") for c in alias):
         raise CLIException('Aliases should contain only letters, numbers, underscores and dashes!')
     data = Data(config)
-    data.execute(
-        "INSERT INTO emotes (`alias`, `uri`) VALUES (:alias, :uri)",
-        {'alias': alias, 'uri': uri},
-    )
-    data.close()
+    try:
+        data.execute(
+            "INSERT INTO emotes (`alias`, `uri`) VALUES (:alias, :uri)",
+            {'alias': alias, 'uri': uri},
+        )
+        data.close()
+    except Exception as e:
+        if "Duplicate entry" in str(e):
+            raise CommandException(f"Alias {alias} already exists on this network!")
+        else:
+            raise
 
 
 def dropemote(config: Dict[str, Any], alias: str) -> None:
@@ -449,6 +459,9 @@ def main() -> None:
         print(str(e), file=sys.stderr)
         print(file=sys.stderr)
         parser.print_help(sys.stderr)
+        sys.exit(1)
+    except CommandException as e:
+        print(str(e), file=sys.stderr)
         sys.exit(1)
     except DBCreateException as e:
         print(str(e), file=sys.stderr)
