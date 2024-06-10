@@ -11,6 +11,7 @@ from flask import Flask, Request, Response, abort, jsonify, render_template, req
 from flask_socketio import SocketIO, join_room  # type: ignore
 from flask_cors import CORS  # type: ignore
 from PIL import Image
+from threading import Lock
 from typing import Any, Dict, List, Optional, cast
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -49,6 +50,7 @@ def now() -> int:
     """
     Returns the current unix timestamp in the UTC timezone.
     """
+
     return calendar.timegm(datetime.datetime.utcnow().timetuple())
 
 
@@ -56,10 +58,16 @@ def modified(fname: str) -> int:
     """
     Returns the modification time in the UTC timezone.
     """
+
     return calendar.timegm(datetime.datetime.utcfromtimestamp(os.path.getmtime(fname)).timetuple())
 
 
 def first_quality() -> Optional[str]:
+    """
+    Looks up all of the video qualities, and returns the first one listed. If none are listed
+    in the config that is present, returns None.
+    """
+
     global config
     qualities = config.get('video_qualities', None)
     if not qualities:
@@ -90,7 +98,7 @@ class SocketInfo:
 
 
 class PresenceInfo:
-    def __init__(self, sid: Any, streamer: str) -> None:
+    def __init__(self, sid: Any, streamer: Optional[str]) -> None:
         self.sid = sid
         self.streamer = streamer
         self.timestamp = now()
@@ -98,18 +106,87 @@ class PresenceInfo:
 
 socket_to_info: Dict[Any, SocketInfo] = {}
 socket_to_presence: Dict[Any, PresenceInfo] = {}
+thread: Optional[object] = None
+thread_lock: Lock = Lock()
+
+
+def background_thread() -> None:
+    """
+    The background polling thread that manages asynchronous messages from the database.
+    """
+
+    while True:
+        socketio.sleep(1.0)
+
+        with thread_lock:
+            # Clean up orphaned watchers.
+            sids = list(socket_to_presence.keys())
+            oldest = now() - 30
+
+            for sid in sids:
+                if socket_to_presence[sid].timestamp < oldest:
+                    del socket_to_presence[sid]
+
+            # If there's nobody left watching, shut ourselves down to save on DB accesses.
+            if not socket_to_presence:
+                print("Shutting down polling thread due to no more client sockets.")
+
+                global thread
+                thread = None
+
+                return
+
+
+def update_presence(sid: Any, streamer: Optional[str]) -> None:
+    """
+    Given a stream SID and a streamer, update the presence info for the purpose of counting
+    connected SIDs as well as stream viewers.
+    """
+
+    global thread
+    with thread_lock:
+        socket_to_presence[request.sid] = PresenceInfo(request.sid, streamer)
+
+        if thread is None:
+            print("Starting polling thread due to first client socket connection.")
+            thread = socketio.start_background_task(background_thread)
+
+
+def delete_presence(sid: Any) -> None:
+    """
+    Given a stream SID, delete the presence info for the purpose of counting connected SIDs.
+    """
+
+    with thread_lock:
+        if request.sid in socket_to_presence:
+            del socket_to_presence[request.sid]
 
 
 def users_in_room(streamer: str) -> List[Dict[str, str]]:
+    """
+    Looks up all the users in a given room, where a room is dictated by the streamer handle.
+    """
+
     return [{'username': i.username, 'type': get_type(i), 'color': i.htmlcolor} for i in socket_to_info.values() if i.streamer == streamer]
 
 
 def stream_count(streamer: str) -> int:
+    """
+    Looks up the count of active viewers on the stream, as dictated by anyone who has interacted with the
+    stream in any manner (pulling info, chat connection, etc) in the last 30 seconds.
+    """
+
     oldest = now() - 30
-    return len([None for x in socket_to_presence.values() if x.streamer == streamer and x.timestamp >= oldest])
+    with thread_lock:
+        return len([None for x in socket_to_presence.values() if x.streamer == streamer and x.timestamp >= oldest])
 
 
 def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
+    """
+    Looks up a stream by the stream key and quality, returning True if the stream was last published to
+    within the configured indicator delay, and False otherwise.
+    """
+
     global config
 
     if quality:
@@ -129,6 +206,11 @@ def stream_live(streamkey: str, quality: Optional[str] = None) -> bool:
 
 
 def get_color(color: str) -> Optional[int]:
+    """
+    Given either a hex color (in HTML style) or a CSS3 color name, attempts to return the actual RGB
+    color that that color string represents.
+    """
+
     color = color.strip().lower()
 
     if color == "random":
@@ -157,6 +239,11 @@ def get_color(color: str) -> Optional[int]:
 
 
 def get_type(user: SocketInfo) -> str:
+    """
+    Returns the type of user, given the socket info of the user. Valid types include
+    "admim", "moderator" and "normal" users.
+    """
+
     if user.admin:
         return "admin"
     elif user.moderator:
@@ -166,6 +253,11 @@ def get_type(user: SocketInfo) -> str:
 
 
 def fetch_m3u8(streamkey: str, quality: Optional[str] = None) -> Optional[str]:
+    """
+    Given a stream key and an optional quality, fetches the M3U8 contents corresponding to
+    those details. If the streamer isn't live, this returns None instead.
+    """
+
     global config
 
     if quality:
@@ -182,6 +274,11 @@ def fetch_m3u8(streamkey: str, quality: Optional[str] = None) -> Optional[str]:
 
 
 def fetch_ts(filename: str) -> Optional[bytes]:
+    """
+    Given a ts filename, grabs the data for that file. This is a debug function only, normally
+    you would have your nginx proxy serve ts files directly.
+    """
+
     global config
 
     ts = os.path.join(config['hls_dir'], filename)
@@ -194,6 +291,11 @@ def fetch_ts(filename: str) -> Optional[bytes]:
 
 
 def symlink(oldname: str, newname: str) -> None:
+    """
+    Given an old and a new name, perform a symlink from the old to the new name. Note that this
+    assumes the old and new names are inside the configured hls directory.
+    """
+
     src = os.path.join(config['hls_dir'], oldname)
     dst = os.path.join(config['hls_dir'], newname)
     try:
@@ -203,6 +305,11 @@ def symlink(oldname: str, newname: str) -> None:
 
 
 def clean_symlinks() -> None:
+    """
+    Removes any previously created symlinks that no longer point at a valid file. This happens when
+    the stream advances past an older file name and the file is deleted, leaving the symlink dangling.
+    """
+
     global config
 
     try:
@@ -226,8 +333,10 @@ _ALIASES_UNICODE: Dict[str, str] = {}  # Cache for the aliases dict
 
 
 def get_emoji_unicode_dict(lang: str) -> Dict[str, Any]:
-    """Generate dict containing all fully-qualified and component emoji name for a language
-    The dict is only generated once per language and then cached in _EMOJI_UNICODE[lang]"""
+    """
+    Generate dict containing all fully-qualified and component emoji name for a language
+    The dict is only generated once per language and then cached in _EMOJI_UNICODE[lang]
+    """
 
     if _EMOJI_UNICODE[lang] is None:
         _EMOJI_UNICODE[lang] = {data[lang]: emj for emj, data in emoji.EMOJI_DATA.items()
@@ -237,8 +346,10 @@ def get_emoji_unicode_dict(lang: str) -> Dict[str, Any]:
 
 
 def get_aliases_unicode_dict() -> Dict[str, str]:
-    """Generate dict containing all fully-qualified and component aliases
-    The dict is only generated once and then cached in _ALIASES_UNICODE"""
+    """
+    Generate dict containing all fully-qualified and component aliases
+    The dict is only generated once and then cached in _ALIASES_UNICODE
+    """
 
     if not _ALIASES_UNICODE:
         _ALIASES_UNICODE.update(get_emoji_unicode_dict('en'))
@@ -497,7 +608,7 @@ def streamts(filename: str) -> Response:
         abort(404)
 
     response = make_response(ts)
-    response.headers.set('Content-Type', 'video/mp2t')  # type: ignore
+    response.headers.set('Content-Type', 'video/mp2t')
     return response
 
 
@@ -530,6 +641,9 @@ def connect() -> None:
     if request.sid in socket_to_info:
         del socket_to_info[request.sid]
 
+    # Make sure we track this client so we don't get a premature hang-up.
+    update_presence(request.sid, None)
+
 
 @socketio.on('disconnect')  # type: ignore
 def disconnect() -> None:
@@ -538,8 +652,9 @@ def disconnect() -> None:
         del socket_to_info[request.sid]
 
         socketio.emit('disconnected', {'username': info.username, 'type': get_type(info), 'color': info.htmlcolor, 'users': users_in_room(info.streamer)}, room=info.streamer)
-    if request.sid in socket_to_presence:
-        del socket_to_presence[request.sid]
+
+    # Explicitly kill the presence since we know they're gone.
+    delete_presence(request.sid)
 
 
 @socketio.on('presence')  # type: ignore
@@ -549,7 +664,7 @@ def handle_presence(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) 
 
     # Update user presence information
     streamer = json['streamer'].lower()
-    socket_to_presence[request.sid] = PresenceInfo(request.sid, streamer)
+    update_presence(request.sid, streamer)
 
 
 @socketio.on('login')  # type: ignore
@@ -586,7 +701,7 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
     key = json.get('key', None)
 
     # Update user presence information
-    socket_to_presence[request.sid] = PresenceInfo(request.sid, streamer)
+    update_presence(request.sid, streamer)
 
     cursor = mysql().execute(
         "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
@@ -663,7 +778,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
         return
 
     # Update user presence information
-    socket_to_presence[request.sid] = PresenceInfo(request.sid, socket_to_info[request.sid].streamer)
+    update_presence(request.sid, socket_to_info[request.sid].streamer)
 
     message = json['message'].strip()
     if message[0] == "/":
@@ -1288,7 +1403,7 @@ def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
         return
 
     # Update user presence information
-    socket_to_presence[request.sid] = PresenceInfo(request.sid, socket_to_info[request.sid].streamer)
+    update_presence(request.sid, socket_to_info[request.sid].streamer)
 
     src = json['src'].strip()
 
