@@ -153,12 +153,13 @@ def addemote(config: Dict[str, Any], alias: str, uri: str) -> None:
             "INSERT INTO emotes (`alias`, `uri`) VALUES (:alias, :uri)",
             {'alias': alias, 'uri': uri},
         )
-        data.close()
     except Exception as e:
         if "Duplicate entry" in str(e):
             raise CommandException(f"Alias {alias} already exists on this network!")
         else:
             raise
+    finally:
+        data.close()
 
 
 def dropemote(config: Dict[str, Any], alias: str) -> None:
@@ -185,6 +186,40 @@ def listemotes(config: Dict[str, Any]) -> None:
     for result in cursor.fetchall():
         print(f"{result['alias']}: {result['uri']}")
     data.close()
+
+
+def sendmessage(config: Dict[str, Any], username: str, messagetype: str, message: str) -> None:
+    """
+    Given a valid config, a username and a type, send a message as if that user had sent the message
+    in a stream chat. Note that if nobody is in the room, the message will not get processed to be
+    sent until somebody joins.
+    """
+
+    if messagetype not in {"normal", "action", "server"}:
+        raise CLIException(f"Message type {messagetype} is not recognized!")
+
+    data = Data(config)
+    try:
+        cursor = data.execute(
+            "SELECT username FROM streamersettings WHERE username = :username LIMIT 1",
+            {'username': username}
+        )
+
+        sent = False
+        for result in cursor.fetchall():
+            actual_username = result['username']
+            data.execute(
+                "INSERT INTO pendingmessages (`username`, `type`, `message`) VALUES (:username, :type, :message)",
+                {'username': actual_username, 'type': messagetype, 'message': message},
+            )
+
+            # Successfully queued message.
+            sent = True
+
+        if not sent:
+            raise CommandException(f"Could not find streamer {username} on this network!")
+    finally:
+        data.close()
 
 
 def main() -> None:
@@ -403,6 +438,44 @@ def main() -> None:
         help="alias of the emote you're dropping, containing only alphanumberic characters, dashes and underscores",
     )
 
+    # Another subcommand here.
+    message_parser = commands.add_parser(
+        "message",
+        help="interact with messages on behalf of a streamer who is live",
+        description="Interact with messages on behalf of a streamer who is live.",
+    )
+    message_commands = message_parser.add_subparsers(dest="message")
+
+    # A few params for this one
+    sendmessage_parser = message_commands.add_parser(
+        "send",
+        help="send a message on behalf of a streamer",
+        description="Send a message on behalf of a streamer.",
+    )
+    sendmessage_parser.add_argument(
+        "-u",
+        "--username",
+        type=str,
+        required=True,
+        help="streamer username for the stream the message will be sent to",
+    )
+    sendmessage_parser.add_argument(
+        "-t",
+        "--type",
+        type=str,
+        default='normal',
+        choices=['normal', 'action', 'server'],
+        help="type of message to send, defaulting to a normal message appearing as if the streamer typed it",
+    )
+    sendmessage_parser.add_argument(
+        "-m",
+        "--message",
+        required=True,
+        type=str,
+        dest="contents",
+        help="actual message to send to the chat of the streamer",
+    )
+
     args = parser.parse_args()
 
     config = yaml.safe_load(open(args.config))
@@ -452,6 +525,14 @@ def main() -> None:
                 listemotes(config)
             else:
                 raise CLIException(f"Unknown emote operation '{args.emote}'")
+
+        elif args.operation == "message":
+            if args.message is None:
+                raise CLIException("Unuspecified message operation!")
+            elif args.message == "send":
+                sendmessage(config, args.username, args.type, args.contents)
+            else:
+                raise CLIException(f"Unknown message operation '{args.message}'")
 
         else:
             raise CLIException(f"Unknown operation '{args.operation}'")

@@ -63,8 +63,8 @@ pendingmessages = Table(
     'pendingmessages',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('username', String(256), nullable=False, unique=True),
-    Column('type', String(32), nullable=False, index=True),
+    Column('username', String(256), nullable=False),
+    Column('type', String(32), nullable=False),
     Column('message', String(512)),
     mysql_charset="utf8mb4",
 )

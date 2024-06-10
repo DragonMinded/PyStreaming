@@ -133,11 +133,64 @@ def background_thread() -> None:
     cursor = mysql().execute(
         "SELECT alias, uri FROM emotes",
     )
-    emotes = {f":{result['alias']}:": result['uri'] for result in cursor}
+    validemotes = {f":{result['alias']}:": result['uri'] for result in cursor}
     last_update = now()
 
     while True:
         socketio.sleep(1.0)
+
+        # Look up any pending messages that need to be sent.
+        streamers = set(s.streamer for s in socket_to_info.values())
+        usernames = {s.streamer: s.username for s in socket_to_info.values() if s.admin}
+        colors = {s.streamer: s.htmlcolor for s in socket_to_info.values() if s.admin}
+
+        cursor = mysql().execute("SELECT id, username, type, message FROM pendingmessages")
+        for result in cursor:
+            delid = result['id']
+            username = result['username']
+            streamer = username.lower()
+            msgtype = result['type']
+            message = result['message']
+
+            if streamer not in streamers:
+                continue
+
+            # If they're actually chatting, use the name they're currently set to. Otherwise
+            # default to their stream username. Also, default to their currently set color or
+            # use black as the default.
+            actual_name = usernames.get(streamer, username)
+            actual_color = colors.get(streamer, '#000000')
+
+            if msgtype == "server":
+                socketio.emit(
+                    'server',
+                    {'msg': message},
+                    room=streamer,
+                )
+            elif msgtype == "action":
+                socketio.emit(
+                    'action received',
+                    {
+                        'username': actual_name,
+                        'type': 'admin',
+                        'color': actual_color,
+                        'message': emotes(message),
+                    },
+                    room=streamer,
+                )
+            elif msgtype == "normal":
+                socketio.emit(
+                    'message received',
+                    {
+                        'username': actual_name,
+                        'type': 'admin',
+                        'color': actual_color,
+                        'message': emotes(message),
+                    },
+                    room=streamer,
+                )
+
+            mysql().execute("DELETE FROM pendingmessages WHERE id = :id LIMIT 1", {'id': delid})
 
         if now() - last_update >= 5:
             # Delta our emojis and send the deltas to clients.
@@ -150,10 +203,10 @@ def background_thread() -> None:
                 key = f":{result['alias']}:"
                 uri = result['uri']
 
-                if key not in emotes:
+                if key not in validemotes:
                     # This was an addition.
                     print(f"Broadcasting new emote {key} to all connected clients.")
-                    emotes[key] = uri
+                    validemotes[key] = uri
 
                     # Emit to all clients, so don't provide a room.
                     socketio.emit(
@@ -163,11 +216,11 @@ def background_thread() -> None:
 
                 updated.add(key)
 
-            for existing in list(emotes.keys()):
+            for existing in list(validemotes.keys()):
                 if existing not in updated:
                     # This was a deletion.
                     print(f"Broadcasting deleted emote {existing} to all connected clients.")
-                    del emotes[existing]
+                    del validemotes[existing]
 
                     # Emit to all clients, so don't provide a room.
                     socketio.emit(
