@@ -140,7 +140,7 @@ def background_thread() -> None:
         socketio.sleep(1.0)
 
         # Look up any pending messages that need to be sent.
-        streamers = set(s.streamer for s in socket_to_info.values())
+        streamers = set(s.streamer for s in socket_to_info.values() if s.streamer)
         usernames = {s.streamer: s.username for s in socket_to_info.values() if s.admin}
         colors = {s.streamer: s.htmlcolor for s in socket_to_info.values() if s.admin}
 
