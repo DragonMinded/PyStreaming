@@ -181,7 +181,7 @@ def listemotes(config: Dict[str, Any]) -> None:
     """
 
     data = Data(config)
-    cursor = data.execute("SELECT alias, uri FROM emotes")
+    cursor = data.execute("SELECT alias, uri FROM emotes ORDER BY alias")
     for result in cursor.fetchall():
         print(f"{result['alias']}: {result['uri']}")
     data.close()
