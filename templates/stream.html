@@ -179,19 +179,47 @@
           // Support previews of emoji and emotes.
           var options = [];
           for (const [key, value] of Object.entries(emojis)) {
-              options.push({text: key, preview: "&nbsp;" + twemoji.parse(value)});
+            options.push({text: key, type: "emoji", preview: "&nbsp;" + twemoji.parse(value)});
           }
           for (const [key, value] of Object.entries(emotes)) {
-              options.push({text: key, preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
+            options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
           }
-          var updater = autocomplete('#message', options);
+          // Support tab-completing users as well.
+          var acusers = [];
+          var updater = autocomplete('#message', options.concat(acusers));
 
           // Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
           var updateusers = function() {
-              var acusers = users.map(function(user) {
-                  return {text: "@" + user.username, preview: "<span>" + escapehtml(user.username) + "</span>"};
-              });
-              updater(options.concat(acusers));
+            acusers = users.map(function(user) {
+              return {text: "@" + user.username, type: "user", preview: "<span>" + escapehtml(user.username) + "</span>"};
+            });
+            updater(options.concat(acusers));
+          }
+
+          // Whenever an emote is live-added, update the autocomplete typeahead for that emote.
+          var addemote = function(key, uri) {
+            emotes[key] = uri;
+            options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + uri + "\" />"});
+            updater(options.concat(acusers));
+
+            // Also be sure to reload the image.
+            var box = $( 'div.emote-preload' );
+            box.append( '<img src="' + uri + '" />' );
+          }
+
+          // Whenever an emote is live-removed, update the autocomplet typeahead to remove that emote.
+          var delemote = function(key) {
+            delete emotes[key];
+
+            var loc = 0;
+            while( loc < options.length ) {
+              if (options[loc].type == "emote" && options[loc].text == key) {
+                options.splice(loc, 1);
+              } else {
+                loc ++;
+              }
+            }
+            updater(options.concat(acusers));
           }
 
           // Calculate the integer scroll top of a given component.
@@ -620,6 +648,14 @@
 
           socket.on( 'return color', function( msg ) {
             updateColor(msg.color);
+          });
+
+          socket.on( 'add emote', function( msg ) {
+            addemote(msg.key, msg.uri);
+          });
+
+          socket.on( 'remove emote', function( msg ) {
+            delemote(msg.key);
           });
 
           socket.on( 'password activated', function( msg ) {

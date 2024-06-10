@@ -7,12 +7,23 @@ import random
 import urllib.request
 import webcolors  # type: ignore
 import yaml
-from flask import Flask, Request, Response, abort, jsonify, render_template, request as base_request, redirect, make_response, url_for
+from flask import (
+    Flask,
+    Request,
+    Response,
+    abort,
+    jsonify,
+    render_template,
+    request as base_request,
+    redirect,
+    make_response,
+    url_for,
+)
 from flask_socketio import SocketIO, join_room  # type: ignore
 from flask_cors import CORS  # type: ignore
 from PIL import Image
 from threading import Lock
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Set, cast
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from data import Data
@@ -115,8 +126,56 @@ def background_thread() -> None:
     The background polling thread that manages asynchronous messages from the database.
     """
 
+    # Grab the initial list of emoji that are supported so that we can delta it occasionally and
+    # inform clients of emoji changes on the server. Technically there could be a race where we
+    # add an emote right after somebody loads the page but before the JS connects to us, but the
+    # likelihood of that is small, so we will live with the bug.
+    cursor = mysql().execute(
+        "SELECT alias, uri FROM emotes",
+    )
+    emotes = {f":{result['alias']}:": result['uri'] for result in cursor}
+    last_update = now()
+
     while True:
         socketio.sleep(1.0)
+
+        if now() - last_update >= 5:
+            # Delta our emojis and send the deltas to clients.
+            cursor = mysql().execute(
+                "SELECT alias, uri FROM emotes",
+            )
+
+            updated: Set[str] = set()
+            for result in cursor:
+                key = f":{result['alias']}:"
+                uri = result['uri']
+
+                if key not in emotes:
+                    # This was an addition.
+                    print(f"Broadcasting new emote {key} to all connected clients.")
+                    emotes[key] = uri
+
+                    # Emit to all clients, so don't provide a room.
+                    socketio.emit(
+                        'add emote',
+                        {'key': key, 'uri': uri},
+                    )
+
+                updated.add(key)
+
+            for existing in list(emotes.keys()):
+                if existing not in updated:
+                    # This was a deletion.
+                    print(f"Broadcasting deleted emote {existing} to all connected clients.")
+                    del emotes[existing]
+
+                    # Emit to all clients, so don't provide a room.
+                    socketio.emit(
+                        'remove emote',
+                        {'key': existing},
+                    )
+
+            last_update = now()
 
         with thread_lock:
             # Clean up orphaned watchers.
