@@ -841,6 +841,37 @@ def updateinfo() -> Response:
     return __info(streamer)
 
 
+@app.route('/api/messages', methods=["POST"])
+def sendmessage() -> Response:
+    streamer = get_auth(request.authorization)
+    if not streamer:
+        abort(401)
+
+    content = request.json
+    if isinstance(content, dict):
+        messagetype: Optional[str] = None
+        message: Optional[str] = None
+
+        if "type" in content:
+            messagetype = str(content["type"])
+        if not messagetype:
+            messagetype = "normal"
+        if "message" in content:
+            message = str(content["message"])
+
+        if messagetype is None or message is None:
+            abort(400)
+        if messagetype not in {"normal", "action", "server"}:
+            abort(400)
+
+        mysql().execute(
+            "INSERT INTO pendingmessages (`username`, `type`, `message`) VALUES (:username, :type, :message)",
+            {'username': streamer, 'type': messagetype, 'message': message},
+        )
+
+    return make_response(jsonify({}))
+
+
 @socketio.on('connect')  # type: ignore
 def connect() -> None:
     if request.sid in socket_to_info:

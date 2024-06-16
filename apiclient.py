@@ -72,6 +72,30 @@ def update_info(
         raise APIException("Server returned error response")
 
 
+def send_message(
+    domain: str,
+    streamer: str,
+    streamkey: str,
+    *,
+    messagetype: str = "normal",
+    message: str = "",
+) -> None:
+    if messagetype not in {"normal", "action", "server"}:
+        raise APIException(f"Message type {messagetype} is not recognized!")
+    if not message:
+        raise APIException("Cannot send an empty message!")
+
+    data: Dict[str, object] = {
+        "type": messagetype,
+        "message": message,
+    }
+    resp = requests.post(f"{domain}/api/messages", auth=HTTPBasicAuth(streamer, streamkey), json=data)
+    if resp.status_code == 401:
+        raise APIException(f"You are not authorized to make requests on behalf of {streamer}")
+    if resp.status_code != 200:
+        raise APIException("Server returned error response")
+
+
 class CLIException(Exception):
     pass
 
@@ -136,6 +160,29 @@ if __name__ == "__main__":
         help="the viewer password to update the stream to",
     )
 
+    # Send a message on behalf of the streamer.
+    sendmessage_parser = commands.add_parser(
+        "sendmessage",
+        help="send a message on behalf of a streamer",
+        description="Send a message on behalf of a streamer.",
+    )
+    sendmessage_parser.add_argument(
+        "-t",
+        "--type",
+        type=str,
+        default='normal',
+        choices=['normal', 'action', 'server'],
+        help="type of message to send, defaulting to a normal message appearing as if the streamer typed it",
+    )
+    sendmessage_parser.add_argument(
+        "-m",
+        "--message",
+        required=True,
+        type=str,
+        dest="contents",
+        help="actual message to send to the chat of the streamer",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -145,12 +192,19 @@ if __name__ == "__main__":
         if args.operation == "getinfo":
             info = get_info(args.domain, args.username, args.key)
             print(info)
+
         elif args.operation == "setdescription":
             update_info(args.domain, args.username, args.key, description=args.description)
             print("Stream description updated!")
+
         elif args.operation == "setpassword":
             update_info(args.domain, args.username, args.key, password=args.password or None)
             print("Stream viewer password updated!")
+
+        elif args.operation == "sendmessage":
+            send_message(args.domain, args.username, args.key, messagetype=args.type, message=args.contents)
+            print("Message sent on behalf of streamer!")
+
         else:
             raise CLIException(f"Unrecognized operation {args.operation}")
 
