@@ -12,6 +12,8 @@ emoji
 webcolors
 mypy
 pillow
+requests
 sqlalchemy-stubs
 types-emoji
 types-pyyaml
+types-requests

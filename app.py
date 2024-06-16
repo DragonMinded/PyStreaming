@@ -24,6 +24,7 @@ from flask_cors import CORS  # type: ignore
 from PIL import Image
 from threading import Lock
 from typing import Any, Dict, List, Optional, Set, cast
+from werkzeug.datastructures import Authorization
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from data import Data
@@ -746,6 +747,69 @@ def publishcheck() -> Response:
 @app.route('/auth/on_publish_done', methods=["GET", "POST"])
 def donepublishcheck() -> Response:
     return make_response("Stream ok!", 200)
+
+
+def get_auth(auth: Optional[Authorization]) -> Optional[str]:
+    if not auth:
+        return None
+
+    if auth.type != "basic":
+        return None
+
+    if not auth.username or not auth.password:
+        return None
+
+    cursor = mysql().execute(
+        "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
+        {"username": auth.username},
+    )
+    if cursor.rowcount != 1:
+        return None
+
+    for result in cursor:
+        if auth.password == result["key"]:
+            return auth.username.lower()
+
+    return None
+
+
+@app.route('/api/info', methods=["GET"])
+def apiinfo() -> Response:
+    streamer = get_auth(request.authorization)
+    if not streamer:
+        abort(401)
+
+    cursor = mysql().execute(
+        "SELECT `username`, `key`, `streampass`, `description` FROM streamersettings WHERE username = :username",
+        {"username": streamer},
+    )
+    if cursor.rowcount != 1:
+        # Shouldn't happen due to auth check, but let's be sure.
+        abort(404)
+
+    result = cursor.fetchone()
+
+    # First, verify they're even allowed to see this stream.
+    streampass = result['streampass'] or None
+    username = result['username']
+    description = result['description'] or ''
+
+    # Figure out if the stream itself is live.
+    live = stream_live(result['key'], first_quality())
+
+    # Grab viewer count, active chatters.
+    users = [u["username"] for u in users_in_room(streamer)]
+    viewers = stream_count(streamer) if live else 0
+
+    # Return all that info!
+    return make_response(jsonify({
+        'username': username,
+        'description': emotes(description),
+        'streampass': streampass,
+        'live': live,
+        'viewers': viewers,
+        'members': users,
+    }))
 
 
 @socketio.on('connect')  # type: ignore
