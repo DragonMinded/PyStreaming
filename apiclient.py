@@ -2,7 +2,7 @@ import argparse
 import requests
 import sys
 from requests.auth import HTTPBasicAuth
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 
 class APIException(Exception):
@@ -43,6 +43,35 @@ def get_info(domain: str, streamer: str, streamkey: str) -> StreamInfo:
     )
 
 
+class __SentinelValue:
+    pass
+
+
+# So we can allow setting null to unset a value, versus leaving unspecified to not update a value.
+__sentinel_value = __SentinelValue()
+
+
+def update_info(
+    domain: str,
+    streamer: str,
+    streamkey: str,
+    *,
+    description: Optional[Union[str, __SentinelValue]] = __sentinel_value,
+    password: Optional[Union[str, __SentinelValue]] = __sentinel_value,
+) -> None:
+    data: Dict[str, object] = {}
+    if not isinstance(description, __SentinelValue):
+        data["description"] = description or ""
+    if not isinstance(password, __SentinelValue):
+        data["streampass"] = password
+
+    resp = requests.patch(f"{domain}/api/info", auth=HTTPBasicAuth(streamer, streamkey), json=data)
+    if resp.status_code == 401:
+        raise APIException(f"You are not authorized to make requests on behalf of {streamer}")
+    if resp.status_code != 200:
+        raise APIException("Server returned error response")
+
+
 class CLIException(Exception):
     pass
 
@@ -79,6 +108,34 @@ if __name__ == "__main__":
         description="Get info from a remote streaming server.",
     )
 
+    # Set description subcommand.
+    setdescription_parser = commands.add_parser(
+        "setdescription",
+        help="update the description on a remote streaming server",
+        description="Update the description on a remote streaming server.",
+    )
+    setdescription_parser.add_argument(
+        "-d",
+        "--description",
+        type=str,
+        required=True,
+        help="the description to update the stream to",
+    )
+
+    # Set viewer password subcommand.
+    setpassword_parser = commands.add_parser(
+        "setpassword",
+        help="update the viewer password on a remote streaming server",
+        description="Update the viewer password on a remote streaming server.",
+    )
+    setpassword_parser.add_argument(
+        "-p",
+        "--password",
+        type=str,
+        required=True,
+        help="the viewer password to update the stream to",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -88,6 +145,14 @@ if __name__ == "__main__":
         if args.operation == "getinfo":
             info = get_info(args.domain, args.username, args.key)
             print(info)
+        elif args.operation == "setdescription":
+            update_info(args.domain, args.username, args.key, description=args.description)
+            print("Stream description updated!")
+        elif args.operation == "setpassword":
+            update_info(args.domain, args.username, args.key, password=args.password or None)
+            print("Stream viewer password updated!")
+        else:
+            raise CLIException(f"Unrecognized operation {args.operation}")
 
         sys.exit(0)
     except CLIException as e:

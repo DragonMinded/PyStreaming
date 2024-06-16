@@ -773,12 +773,7 @@ def get_auth(auth: Optional[Authorization]) -> Optional[str]:
     return None
 
 
-@app.route('/api/info', methods=["GET"])
-def apiinfo() -> Response:
-    streamer = get_auth(request.authorization)
-    if not streamer:
-        abort(401)
-
+def __info(streamer: str) -> Response:
     cursor = mysql().execute(
         "SELECT `username`, `key`, `streampass`, `description` FROM streamersettings WHERE username = :username",
         {"username": streamer},
@@ -810,6 +805,40 @@ def apiinfo() -> Response:
         'viewers': viewers,
         'members': users,
     }))
+
+
+@app.route('/api/info', methods=["GET"])
+def fetchinfo() -> Response:
+    streamer = get_auth(request.authorization)
+    if not streamer:
+        abort(401)
+
+    return __info(streamer)
+
+
+@app.route('/api/info', methods=["PATCH"])
+def updateinfo() -> Response:
+    streamer = get_auth(request.authorization)
+    if not streamer:
+        abort(401)
+
+    content = request.json
+    if isinstance(content, dict):
+        if 'description' in content:
+            mysql().execute(
+                "UPDATE streamersettings SET description = :description WHERE username = :username LIMIT 1",
+                {"username": streamer, "description": str(content["description"] or "")},
+            )
+        if 'streampass' in content:
+            password = content["streampass"]
+            if not password:
+                password = None
+            mysql().execute(
+                "UPDATE streamersettings SET streampass = :password WHERE username = :username LIMIT 1",
+                {'username': streamer, 'password': password},
+            )
+
+    return __info(streamer)
 
 
 @socketio.on('connect')  # type: ignore
