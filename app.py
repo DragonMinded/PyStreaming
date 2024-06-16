@@ -804,7 +804,9 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
     streamer = json['streamer'].lower()
     username = json['username']
 
+    first_to_join = True
     for user in users_in_room(streamer):
+        first_to_join = False
         if user['username'].lower() == username.lower():
             socketio.emit('error', {'msg': 'Username is already taken'}, room=request.sid)
             return
@@ -846,6 +848,12 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
         if existing.username.lower() == json['username'].lower():
             socketio.emit('error', {'msg': 'Username is taken'}, room=request.sid)
             return
+
+    # If we have any pending API-queued messages for this streamer and this is the first chatter to
+    # join, blow all those pending messages away. This is so that the first person to join a room
+    # that was previously empty doesn't get jumpscaped with a ton of stale messages.
+    if first_to_join:
+        mysql().execute("DELETE FROM pendingmessages WHERE username = :streamer", {'streamer': streamer})
 
     socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin, False, False, color)
     join_room(streamer)
