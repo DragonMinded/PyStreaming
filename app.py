@@ -138,14 +138,18 @@ def background_thread() -> None:
     last_update = now()
 
     while True:
+        # Just yield to the async system.
         socketio.sleep(1.0)
+
+        # Our connection for this loop.
+        data = mysql()
 
         # Look up any pending messages that need to be sent.
         streamers = set(s.streamer for s in socket_to_info.values() if s.streamer)
         usernames = {s.streamer: s.username for s in socket_to_info.values() if s.admin}
         colors = {s.streamer: s.htmlcolor for s in socket_to_info.values() if s.admin}
 
-        cursor = mysql().execute("SELECT id, username, type, message FROM pendingmessages")
+        cursor = data.execute("SELECT id, username, type, message FROM pendingmessages")
         for result in cursor:
             delid = result['id']
             username = result['username']
@@ -191,11 +195,11 @@ def background_thread() -> None:
                     room=streamer,
                 )
 
-            mysql().execute("DELETE FROM pendingmessages WHERE id = :id LIMIT 1", {'id': delid})
+            data.execute("DELETE FROM pendingmessages WHERE id = :id LIMIT 1", {'id': delid})
 
         if now() - last_update >= 5:
             # Delta our emojis and send the deltas to clients.
-            cursor = mysql().execute(
+            cursor = data.execute(
                 "SELECT alias, uri FROM emotes",
             )
 
@@ -500,7 +504,8 @@ def index() -> str:
 
 @app.route('/<streamer>/')
 def stream(streamer: str) -> Response:
-    cursor = mysql().execute(
+    data = mysql()
+    cursor = data.execute(
         "SELECT username, streampass FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
@@ -534,7 +539,7 @@ def stream(streamer: str) -> Response:
     }
     emojis = {key: emojis[key] for key in emojis if "__" not in key}
 
-    cursor = mysql().execute(
+    cursor = data.execute(
         "SELECT alias, uri FROM emotes ORDER BY alias",
     )
     emotes = {f":{result['alias']}:": result['uri'] for result in cursor}
@@ -749,7 +754,7 @@ def donepublishcheck() -> Response:
     return make_response("Stream ok!", 200)
 
 
-def get_auth(auth: Optional[Authorization]) -> Optional[str]:
+def get_auth(data: Data, auth: Optional[Authorization]) -> Optional[str]:
     if not auth:
         return None
 
@@ -759,7 +764,7 @@ def get_auth(auth: Optional[Authorization]) -> Optional[str]:
     if not auth.username or not auth.password:
         return None
 
-    cursor = mysql().execute(
+    cursor = data.execute(
         "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
         {"username": auth.username},
     )
@@ -773,8 +778,8 @@ def get_auth(auth: Optional[Authorization]) -> Optional[str]:
     return None
 
 
-def __info(streamer: str) -> Response:
-    cursor = mysql().execute(
+def __info(data: Data, streamer: str) -> Response:
+    cursor = data.execute(
         "SELECT `username`, `key`, `streampass`, `description` FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
@@ -809,23 +814,25 @@ def __info(streamer: str) -> Response:
 
 @app.route('/api/info', methods=["GET"])
 def fetchinfo() -> Response:
-    streamer = get_auth(request.authorization)
+    data = mysql()
+    streamer = get_auth(data, request.authorization)
     if not streamer:
         abort(401)
 
-    return __info(streamer)
+    return __info(data, streamer)
 
 
 @app.route('/api/info', methods=["PATCH"])
 def updateinfo() -> Response:
-    streamer = get_auth(request.authorization)
+    data = mysql()
+    streamer = get_auth(data, request.authorization)
     if not streamer:
         abort(401)
 
     content = request.json
     if isinstance(content, dict):
         if 'description' in content:
-            mysql().execute(
+            data.execute(
                 "UPDATE streamersettings SET description = :description WHERE username = :username LIMIT 1",
                 {"username": streamer, "description": str(content["description"] or "")},
             )
@@ -833,17 +840,18 @@ def updateinfo() -> Response:
             password = content["streampass"]
             if not password:
                 password = None
-            mysql().execute(
+            data.execute(
                 "UPDATE streamersettings SET streampass = :password WHERE username = :username LIMIT 1",
                 {'username': streamer, 'password': password},
             )
 
-    return __info(streamer)
+    return __info(data, streamer)
 
 
 @app.route('/api/messages', methods=["POST"])
 def sendmessage() -> Response:
-    streamer = get_auth(request.authorization)
+    data = mysql()
+    streamer = get_auth(data, request.authorization)
     if not streamer:
         abort(401)
 
@@ -864,7 +872,7 @@ def sendmessage() -> Response:
         if messagetype not in {"normal", "action", "server"}:
             abort(400)
 
-        mysql().execute(
+        data.execute(
             "INSERT INTO pendingmessages (`username`, `type`, `message`) VALUES (:username, :type, :message)",
             {'username': streamer, 'type': messagetype, 'message': message},
         )
@@ -921,7 +929,8 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
         socketio.emit('error', {'msg': 'Username cannot be blank'}, room=request.sid)
         return
 
-    if messagelength(json['username']) > 20:
+    data = mysql()
+    if messagelength(data, json['username']) > 20:
         socketio.emit('error', {'msg': 'Username cannot be that long'}, room=request.sid)
         return
 
@@ -941,7 +950,7 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
     # Update user presence information
     update_presence(request.sid, streamer)
 
-    cursor = mysql().execute(
+    cursor = data.execute(
         "SELECT `username`, `key` FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
@@ -977,7 +986,7 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
     # join, blow all those pending messages away. This is so that the first person to join a room
     # that was previously empty doesn't get jumpscaped with a ton of stale messages.
     if first_to_join:
-        mysql().execute("DELETE FROM pendingmessages WHERE username = :streamer", {'streamer': streamer})
+        data.execute("DELETE FROM pendingmessages WHERE username = :streamer", {'streamer': streamer})
 
     socket_to_info[request.sid] = SocketInfo(request.sid, str(request.remote_addr), streamer, json['username'], admin, False, False, color)
     join_room(streamer)
@@ -992,12 +1001,12 @@ def emotes(msg: str) -> str:
     return emoji.emojize(emoji.emojize(msg, language="alias"), language="en")
 
 
-def messagelength(msg: str) -> int:
+def messagelength(data: Data, msg: str) -> int:
     # First, easy conversions.
     msg = emotes(msg)
 
     # Now, look up configured emoji aliases.
-    cursor = mysql().execute(
+    cursor = data.execute(
         "SELECT alias FROM emotes ORDER BY alias",
     )
     for result in cursor:
@@ -1023,6 +1032,9 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
 
     # Update user presence information
     update_presence(request.sid, socket_to_info[request.sid].streamer)
+
+    # Our data connection for various operations.
+    data = mysql()
 
     message = json['message'].strip()
     if message[0] == "/":
@@ -1116,7 +1128,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 # Set a new name
                 name = message.strip()
 
-                if messagelength(name) > 20:
+                if messagelength(data, name) > 20:
                     socketio.emit(
                         'server',
                         {'msg': 'Too long of a name specified, try a different name.'},
@@ -1194,7 +1206,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 return
 
             streamer = socket_to_info[request.sid].streamer
-            cursor = mysql().execute(
+            cursor = data.execute(
                 "SELECT `description`, `streampass` FROM streamersettings WHERE `username` = :streamer",
                 {"streamer": streamer}
             )
@@ -1468,7 +1480,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                             {'msg': f"Unspecified new username for user '{matcher}'"},
                             room=request.sid,
                         )
-                    elif messagelength(new_name) > 20:
+                    elif messagelength(data, new_name) > 20:
                         socketio.emit(
                             'server',
                             {'msg': 'Too long of a name specified, try a different name.'},
@@ -1534,7 +1546,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
 
             streamer = socket_to_info[request.sid].streamer
             description = emotes(message.strip())
-            mysql().execute(
+            data.execute(
                 "UPDATE streamersettings SET `description` = :description WHERE `username` = :streamer",
                 {"streamer": streamer, "description": description}
             )
@@ -1555,7 +1567,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
 
             streamer = socket_to_info[request.sid].streamer
             if message:
-                mysql().execute(
+                data.execute(
                     "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer",
                     {"streamer": streamer, "password": message}
                 )
@@ -1579,7 +1591,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                     room=socket_to_info[request.sid].streamer,
                 )
             else:
-                mysql().execute(
+                data.execute(
                     "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer",
                     {"streamer": streamer, "password": None}
                 )
