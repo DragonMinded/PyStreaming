@@ -13,6 +13,11 @@ from werkzeug.datastructures import Authorization
 
 from app import app, config, request
 from data import Data
+from events import (
+    StartStreamingEvent,
+    StopStreamingEvent,
+    insert_event,
+)
 from presence import stream_count, users_in_room
 from helpers import (
     PICTOCHAT_IMAGE_WIDTH,
@@ -25,6 +30,7 @@ from helpers import (
     get_emoji_unicode_dict,
     get_aliases_unicode_dict,
     mysql,
+    now,
     stream_live,
     symlink,
 )
@@ -292,13 +298,26 @@ def publishcheck() -> Response:
         # We don't have a stream key, deny it.
         abort(404)
 
-    cursor = mysql().execute(
-        "SELECT `key` FROM streamersettings WHERE `key` = :key",
+    data = mysql()
+    cursor = data.execute(
+        "SELECT `username` `description` `streampass` FROM streamersettings WHERE `key` = :key",
         {"key": key},
     )
     if cursor.rowcount != 1:
         # We didn't find a registered streamer with this key, deny it.
         abort(404)
+
+    # Log that we started streaming.
+    result = cursor.fetchone()
+    insert_event(
+        data,
+        StartStreamingEvent(
+            now(),
+            result["username"],
+            result["description"],
+            result["streampass"],
+        )
+    )
 
     # This is fine, allow it
     return make_response("Stream ok!", 200)
@@ -306,6 +325,29 @@ def publishcheck() -> Response:
 
 @app.route('/auth/on_publish_done', methods=["GET", "POST"])
 def donepublishcheck() -> Response:
+    key = request.values.get('name')
+    if key is None:
+        # We don't have a stream key, can't link to an event.
+        return make_response("Stream ok!", 200)
+
+    data = mysql()
+    cursor = data.execute(
+        "SELECT `username` FROM streamersettings WHERE `key` = :key",
+        {"key": key},
+    )
+    if cursor.rowcount != 1:
+        # We didn't find a registered streamer with this key, can't link to an event.
+        return make_response("Stream ok!", 200)
+
+    # Log that we stopped streaming.
+    result = cursor.fetchone()
+    insert_event(
+        data,
+        StopStreamingEvent(
+            now(),
+            result["username"],
+        )
+    )
     return make_response("Stream ok!", 200)
 
 
@@ -326,9 +368,9 @@ def get_auth(data: Data, auth: Optional[Authorization]) -> Optional[str]:
     if cursor.rowcount != 1:
         return None
 
-    for result in cursor:
-        if auth.password == result["key"]:
-            return auth.username.lower()
+    result = cursor.fetchone()
+    if auth.password == result["key"]:
+        return auth.username.lower()
 
     return None
 
