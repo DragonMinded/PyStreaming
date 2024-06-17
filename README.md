@@ -69,7 +69,7 @@ that you have customized in order to operate on the correct database.
 You can start the server using the following command:
 
 ```
-python3 app.py --config config.yaml --port 12345
+python3 pystreaming.py --config config.yaml --port 12345
 ```
 
 This will run the application in production mode. If you want to run the
@@ -141,14 +141,14 @@ rtmp {
 There are a few things you will want to customize in that above section based on
 your setup. First is the port in the `on_publish` section. The port must match the
 port you run your application with. If you changed your `--port` setting when you
-ran `app.py`, make sure to also change the port in `on_publish` so that nginx
+ran `pystreaming.py`, make sure to also change the port in `on_publish` so that nginx
 can validate streamer permissions. The path given in `hls_path` should be readable
 and writeable by the nginx user and the python server user, and should match the
 path in your `config.yaml` `hls_dir` setting. nginx will put transcoded HLS files
 in this directory and this is where the python application will look to find stream
 information.
 
-If you've set everything up correctly and are running `app.py` as well as nginx,
+If you've set everything up correctly and are running `pystreaming.py` as well as nginx,
 you should be able to point OBS at `rtmp://127.0.0.1/live` and start streaming.
 Make sure your stream key matches what you added using `manage.py` above! If you
 are setting this up on a remote server, substitute the server's public IP for
@@ -293,7 +293,7 @@ server {
         # Make sure to pass on IP information.
         include proxy_params;
 
-        # Pass traffic to app.py.
+        # Pass traffic to pystreaming.py.
         proxy_pass http://127.0.0.1:12345/;
     }
 
@@ -306,7 +306,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
 
-        # Pass websockets to app.py
+        # Pass websockets to pystreaming.py
         proxy_pass http://127.0.0.1:12345/socket.io;
     }
 
@@ -340,7 +340,7 @@ server {
     }
 
     location /static {
-        # Make sure to update this to the directory you're running app.py out
+        # Make sure to update this to the directory you're running pystreaming.py out
         # of as it allows nginx to handle static resources, taking strain off
         # of the python application.
         root /location/of/this/repo;
@@ -354,25 +354,25 @@ server {
 There are a few things you wil want to modify in this file. For starters, if you
 aren't using DNS, get rid of the `server_name` entry. If you are, make
 sure this setting matches your domain name. Next, its important that the port in
-both `proxy_pass` settings matches the port you ran your `app.py` script with.
+both `proxy_pass` settings matches the port you ran your `pystreaming.py` script with.
 This should match the port in your `nginx.conf` as well. Finally, make sure the
 directory you chose to put HLS files in matches the `root` option. nginx is a bit
 weird here, since `/hls` is a subdirectory, you give it the parent of the option
 you specified in your `nginx.conf` and `config.yaml` files. So if you chose `/path/to/hls`
 as your HLS file location, you would put `/path/to` in the `root` option above. Make
 sure that the directory you chose is readable/writeable by both the nginx user
-and the user you are running `app.py` under.
+and the user you are running `pystreaming.py` under.
 
-Once you set this up, you will want to run `app.py` again, this time with a slightly
+Once you set this up, you will want to run `pystreaming.py` again, this time with a slightly
 different set of arguments:
 
 
 ```
-python3 app.py --config config.yaml --port 12345 --nginx-proxy 1
+python3 pystreaming.py --config config.yaml --port 12345 --nginx-proxy 1
 ```
 
 The `--nginx-proxy` command says how many hops through nginx we had to make before
-we hit `app.py`. This enables us to correctly determine the IP address of remote
+we hit `pystreaming.py`. This enables us to correctly determine the IP address of remote
 clients without introducing a security hole. If you set everything up correctly
 you will be able to visit [http://coolstreamingsite.com](http://coolstreamingsite.com)
 and view your streams! Note that you should change that domain if you are hosing this
@@ -383,7 +383,7 @@ public IP address instead.
 
 In order to reach the server from outside, open and forward ports 1935 and 80. If
 you set up SSL, open and forward port 443 instead of port 80. Do not open or forward
-the port you ran `app.py` on as nginx takes care of proxying requests for us.
+the port you ran `pystreaming.py` on as nginx takes care of proxying requests for us.
 Now, you will be able to point OBS at `rtmp://coolstreamingsite.com/live` to stream!
 Make sure to change the domain to the one you are using for your server, or if you are
 not using DNS, the public IP of the server.

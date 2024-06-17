@@ -13,7 +13,7 @@ INSTALLDIR="$1"
 mkdir -p "${INSTALLDIR}"
 
 # First, copy the essential scripts and config.
-cp -v alembic.ini app.py data.py env.py manage.py "${INSTALLDIR}"
+cp -v alembic.ini app.py data.py env.py helpers.py manage.py presence.py pystreaming.py rest.py sockets.py "${INSTALLDIR}"
 
 # Copy migrations over without any local pycache.
 mkdir -p "${INSTALLDIR}/versions"
