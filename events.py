@@ -92,6 +92,29 @@ class SendMessageEvent(Event):
         return event
 
 
+class SendDrawingEvent(Event):
+    __TYPE__ = "send_drawing"
+
+    def __init__(self, timestamp: int, streamer: str, name: str, drawing: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name, "drawing": drawing})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "SendDrawingEvent":
+        event = SendDrawingEvent(
+            timestamp,
+            streamer,
+            str(meta["name"]),
+            str(meta["drawing"]),
+        )
+        event.id = eid
+        return event
+
+
 class SendActionEvent(Event):
     __TYPE__ = "send_action"
 
@@ -210,6 +233,7 @@ __VALID_EVENTS: List[Type[Event]] = [
     JoinChatEvent,
     LeaveChatEvent,
     SendMessageEvent,
+    SendDrawingEvent,
     SendActionEvent,
     SendBroadcastEvent,
 ]

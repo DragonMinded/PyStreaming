@@ -9,6 +9,7 @@ from events import (
     LeaveChatEvent,
     ViewerCountEvent,
     SendMessageEvent,
+    SendDrawingEvent,
     SendActionEvent,
     SendBroadcastEvent,
     insert_event,
@@ -1090,6 +1091,16 @@ def handle_drawing(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 room=request.sid,
             )
         else:
+            insert_event(
+                mysql(),
+                SendDrawingEvent(
+                    now(),
+                    socket_to_info[request.sid].streamer,
+                    socket_to_info[request.sid].username,
+                    src,
+                )
+            )
+
             socketio.emit(
                 'drawing received',
                 {
