@@ -13,6 +13,10 @@ from events import (
     SendDrawingEvent,
     SendActionEvent,
     SendBroadcastEvent,
+    ModUserEvent,
+    DemodUserEvent,
+    MuteUserEvent,
+    UnmuteUserEvent,
     insert_event,
 )
 from helpers import (
@@ -683,6 +687,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         sinfo.muted = True
 
                         if changed:
+                            insert_event(
+                                data,
+                                MuteUserEvent(
+                                    now(),
+                                    socket_to_info[request.sid].streamer,
+                                    socket_to_info[request.sid].username,
+                                    sinfo.username,
+                                )
+                            )
+
                             socketio.emit(
                                 'server',
                                 {'msg': f"User '{message}' has been muted."},
@@ -740,6 +754,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         sinfo.muted = False
 
                         if changed:
+                            insert_event(
+                                data,
+                                UnmuteUserEvent(
+                                    now(),
+                                    socket_to_info[request.sid].streamer,
+                                    socket_to_info[request.sid].username,
+                                    sinfo.username,
+                                )
+                            )
+
                             socketio.emit(
                                 'server',
                                 {'msg': f"User '{message}' has been unmuted."},
@@ -790,6 +814,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         sinfo.moderator = True
 
                         if changed:
+                            insert_event(
+                                data,
+                                ModUserEvent(
+                                    now(),
+                                    socket_to_info[request.sid].streamer,
+                                    socket_to_info[request.sid].username,
+                                    sinfo.username,
+                                )
+                            )
+
                             socketio.emit(
                                 'server',
                                 {'msg': f"User '{message}' has been promoted to moderator."},
@@ -840,6 +874,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         sinfo.moderator = False
 
                         if changed:
+                            insert_event(
+                                data,
+                                DemodUserEvent(
+                                    now(),
+                                    socket_to_info[request.sid].streamer,
+                                    socket_to_info[request.sid].username,
+                                    sinfo.username,
+                                )
+                            )
+
                             socketio.emit(
                                 'server',
                                 {'msg': f"User '{message}' has been demoted from moderator."},

@@ -249,6 +249,98 @@ class ViewerCountEvent(Event):
         return event
 
 
+class ModUserEvent(Event):
+    __TYPE__ = "mod_user"
+
+    def __init__(self, timestamp: int, streamer: str, operator: str, name: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"operator": operator, "name": name})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "ModUserEvent":
+        event = ModUserEvent(
+            timestamp,
+            streamer,
+            str(meta["operator"]),
+            str(meta["name"]),
+        )
+        event.id = eid
+        return event
+
+
+class DemodUserEvent(Event):
+    __TYPE__ = "demod_user"
+
+    def __init__(self, timestamp: int, streamer: str, operator: str, name: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"operator": operator, "name": name})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "DemodUserEvent":
+        event = DemodUserEvent(
+            timestamp,
+            streamer,
+            str(meta["operator"]),
+            str(meta["name"]),
+        )
+        event.id = eid
+        return event
+
+
+class MuteUserEvent(Event):
+    __TYPE__ = "mute_user"
+
+    def __init__(self, timestamp: int, streamer: str, operator: str, name: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"operator": operator, "name": name})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "MuteUserEvent":
+        event = MuteUserEvent(
+            timestamp,
+            streamer,
+            str(meta["operator"]),
+            str(meta["name"]),
+        )
+        event.id = eid
+        return event
+
+
+class UnmuteUserEvent(Event):
+    __TYPE__ = "unmute_user"
+
+    def __init__(self, timestamp: int, streamer: str, operator: str, name: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"operator": operator, "name": name})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "UnmuteUserEvent":
+        event = UnmuteUserEvent(
+            timestamp,
+            streamer,
+            str(meta["operator"]),
+            str(meta["name"]),
+        )
+        event.id = eid
+        return event
+
+
 __VALID_EVENTS: List[Type[Event]] = [
     StartStreamingEvent,
     StopStreamingEvent,
@@ -260,6 +352,10 @@ __VALID_EVENTS: List[Type[Event]] = [
     SendDrawingEvent,
     SendActionEvent,
     SendBroadcastEvent,
+    ModUserEvent,
+    DemodUserEvent,
+    MuteUserEvent,
+    UnmuteUserEvent,
 ]
 
 
