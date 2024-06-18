@@ -118,8 +118,8 @@ class SendActionEvent(Event):
 class SendBroadcastEvent(Event):
     __TYPE__ = "send_broadcast"
 
-    def __init__(self, timestamp: int, streamer: str, name: str, broadcast: str) -> None:
-        super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name, "broadcast": broadcast})
+    def __init__(self, timestamp: int, streamer: str, broadcast: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"broadcast": broadcast})
 
     @staticmethod
     def __from_db__(
@@ -131,8 +131,51 @@ class SendBroadcastEvent(Event):
         event = SendBroadcastEvent(
             timestamp,
             streamer,
-            str(meta["name"]),
             str(meta["broadcast"]),
+        )
+        event.id = eid
+        return event
+
+
+class JoinChatEvent(Event):
+    __TYPE__ = "join_chat"
+
+    def __init__(self, timestamp: int, streamer: str, name: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "JoinChatEvent":
+        event = JoinChatEvent(
+            timestamp,
+            streamer,
+            str(meta["name"]),
+        )
+        event.id = eid
+        return event
+
+
+class LeaveChatEvent(Event):
+    __TYPE__ = "leave_chat"
+
+    def __init__(self, timestamp: int, streamer: str, name: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "LeaveChatEvent":
+        event = LeaveChatEvent(
+            timestamp,
+            streamer,
+            str(meta["name"]),
         )
         event.id = eid
         return event
@@ -141,6 +184,8 @@ class SendBroadcastEvent(Event):
 __VALID_EVENTS: List[Type[Event]] = [
     StartStreamingEvent,
     StopStreamingEvent,
+    JoinChatEvent,
+    LeaveChatEvent,
     SendMessageEvent,
     SendActionEvent,
     SendBroadcastEvent,

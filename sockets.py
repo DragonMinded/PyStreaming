@@ -4,6 +4,14 @@ from PIL import Image
 from typing import Any, Dict, List, Optional, Set
 
 from app import socketio, request
+from events import (
+    JoinChatEvent,
+    LeaveChatEvent,
+    SendMessageEvent,
+    SendActionEvent,
+    SendBroadcastEvent,
+    insert_event,
+)
 from helpers import (
     PICTOCHAT_IMAGE_WIDTH,
     PICTOCHAT_IMAGE_HEIGHT,
@@ -71,12 +79,31 @@ def background_thread_proc() -> None:
             actual_color = colors.get(streamer, '#000000')
 
             if msgtype == "server":
+                insert_event(
+                    data,
+                    SendBroadcastEvent(
+                        now(),
+                        streamer,
+                        message,
+                    )
+                )
+
                 socketio.emit(
                     'server',
                     {'msg': message},
                     room=streamer,
                 )
             elif msgtype == "action":
+                insert_event(
+                    data,
+                    SendActionEvent(
+                        now(),
+                        streamer,
+                        actual_name,
+                        emotes(message),
+                    )
+                )
+
                 socketio.emit(
                     'action received',
                     {
@@ -88,6 +115,16 @@ def background_thread_proc() -> None:
                     room=streamer,
                 )
             elif msgtype == "normal":
+                insert_event(
+                    data,
+                    SendMessageEvent(
+                        now(),
+                        streamer,
+                        actual_name,
+                        emotes(message),
+                    )
+                )
+
                 socketio.emit(
                     'message received',
                     {
@@ -198,6 +235,15 @@ def disconnect() -> None:
         info = socket_to_info[request.sid]
         del socket_to_info[request.sid]
 
+        insert_event(
+            mysql(),
+            LeaveChatEvent(
+                now(),
+                info.streamer,
+                info.username,
+            )
+        )
+
         socketio.emit('disconnected', {'username': info.username, 'type': info.type, 'color': info.htmlcolor, 'users': users_in_room(info.streamer)}, room=info.streamer)
 
     # Explicitly kill the presence since we know they're gone.
@@ -296,6 +342,15 @@ def handle_login(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -> 
     socketio.emit('login success', {'username': json['username']}, room=request.sid)
     socketio.emit('connected', {'username': json['username'], 'type': socket_to_info[request.sid].type, 'color': socket_to_info[request.sid].htmlcolor, 'users': users_in_room(streamer)}, room=streamer)
 
+    insert_event(
+        data,
+        JoinChatEvent(
+            now(),
+            streamer,
+            json['username']
+        )
+    )
+
     if admin:
         socketio.emit('server', {'msg': 'You have admin rights.'}, room=request.sid)
 
@@ -338,6 +393,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 )
             else:
                 # Just a say message
+                insert_event(
+                    data,
+                    SendMessageEvent(
+                        now(),
+                        socket_to_info[request.sid].streamer,
+                        socket_to_info[request.sid].username,
+                        emotes(message),
+                    )
+                )
+
                 socketio.emit(
                     'message received',
                     {
@@ -357,6 +422,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 )
             else:
                 # An action message
+                insert_event(
+                    data,
+                    SendActionEvent(
+                        now(),
+                        socket_to_info[request.sid].streamer,
+                        socket_to_info[request.sid].username,
+                        emotes(message),
+                    )
+                )
+
                 socketio.emit(
                     'action received',
                     {
@@ -907,6 +982,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 room=request.sid,
             )
         else:
+            insert_event(
+                data,
+                SendMessageEvent(
+                    now(),
+                    socket_to_info[request.sid].streamer,
+                    socket_to_info[request.sid].username,
+                    emotes(message),
+                )
+            )
+
             socketio.emit(
                 'message received',
                 {

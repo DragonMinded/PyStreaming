@@ -313,7 +313,7 @@ def publishcheck() -> Response:
         data,
         StartStreamingEvent(
             now(),
-            result["username"],
+            result["username"].lower(),
             result["description"],
             result["streampass"],
         )
@@ -345,7 +345,7 @@ def donepublishcheck() -> Response:
         data,
         StopStreamingEvent(
             now(),
-            result["username"],
+            result["username"].lower(),
         )
     )
     return make_response("Stream ok!", 200)
