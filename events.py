@@ -204,6 +204,29 @@ class LeaveChatEvent(Event):
         return event
 
 
+class ChangeNameEvent(Event):
+    __TYPE__ = "change_name"
+
+    def __init__(self, timestamp: int, streamer: str, oldname: str, newname: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"oldname": oldname, "newname": newname})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "ChangeNameEvent":
+        event = ChangeNameEvent(
+            timestamp,
+            streamer,
+            str(meta["oldname"]),
+            str(meta["newname"]),
+        )
+        event.id = eid
+        return event
+
+
 class ViewerCountEvent(Event):
     __TYPE__ = "viewer_count"
 
@@ -231,6 +254,7 @@ __VALID_EVENTS: List[Type[Event]] = [
     StopStreamingEvent,
     ViewerCountEvent,
     JoinChatEvent,
+    ChangeNameEvent,
     LeaveChatEvent,
     SendMessageEvent,
     SendDrawingEvent,

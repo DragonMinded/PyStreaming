@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Set
 from app import socketio, request
 from events import (
     JoinChatEvent,
+    ChangeNameEvent,
     LeaveChatEvent,
     ViewerCountEvent,
     SendMessageEvent,
@@ -550,6 +551,17 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         else:
                             old = socket_to_info[request.sid].username
                             socket_to_info[request.sid].username = name
+
+                            insert_event(
+                                data,
+                                ChangeNameEvent(
+                                    now(),
+                                    socket_to_info[request.sid].streamer,
+                                    old,
+                                    socket_to_info[request.sid].username,
+                                )
+                            )
+
                             socketio.emit(
                                 'rename',
                                 {
@@ -911,6 +923,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                             else:
                                 # User has permission to rename another user, let's execute it.
                                 sinfo.username = new_name
+
+                                insert_event(
+                                    data,
+                                    ChangeNameEvent(
+                                        now(),
+                                        socket_to_info[request.sid].streamer,
+                                        old,
+                                        new_name,
+                                    )
+                                )
 
                                 socketio.emit(
                                     'rename',
