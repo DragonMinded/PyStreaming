@@ -300,7 +300,7 @@ def publishcheck() -> Response:
 
     data = mysql()
     cursor = data.execute(
-        "SELECT `username` `description` `streampass` FROM streamersettings WHERE `key` = :key",
+        "SELECT `username`, `description`, `streampass` FROM streamersettings WHERE `key` = :key",
         {"key": key},
     )
     if cursor.rowcount != 1:
