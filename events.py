@@ -181,9 +181,32 @@ class LeaveChatEvent(Event):
         return event
 
 
+class ViewerCountEvent(Event):
+    __TYPE__ = "viewer_count"
+
+    def __init__(self, timestamp: int, streamer: str, viewers: int) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"viewers": viewers})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "ViewerCountEvent":
+        event = ViewerCountEvent(
+            timestamp,
+            streamer,
+            int(str(meta["viewers"])),
+        )
+        event.id = eid
+        return event
+
+
 __VALID_EVENTS: List[Type[Event]] = [
     StartStreamingEvent,
     StopStreamingEvent,
+    ViewerCountEvent,
     JoinChatEvent,
     LeaveChatEvent,
     SendMessageEvent,

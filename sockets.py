@@ -7,6 +7,7 @@ from app import socketio, request
 from events import (
     JoinChatEvent,
     LeaveChatEvent,
+    ViewerCountEvent,
     SendMessageEvent,
     SendActionEvent,
     SendBroadcastEvent,
@@ -16,10 +17,12 @@ from helpers import (
     PICTOCHAT_IMAGE_WIDTH,
     PICTOCHAT_IMAGE_HEIGHT,
     emotes,
+    first_quality,
     get_color,
     message_length,
     mysql,
     now,
+    stream_live,
 )
 from presence import (
     SocketInfo,
@@ -27,6 +30,7 @@ from presence import (
     presence_lock,
     socket_to_info,
     socket_to_presence,
+    stream_count,
     users_in_room,
 )
 
@@ -48,6 +52,9 @@ def background_thread_proc() -> None:
     )
     validemotes = {f":{result['alias']}:": result['uri'] for result in cursor}
     last_update = now()
+
+    # Track our known streamer viewcounts.
+    viewcounts: Dict[str, int] = {}
 
     while True:
         # Just yield to the async system.
@@ -137,6 +144,36 @@ def background_thread_proc() -> None:
                 )
 
             data.execute("DELETE FROM pendingmessages WHERE id = :id LIMIT 1", {'id': delid})
+
+        # Figure out if we need to log an analytics event (viewer count changed).
+        alltracked = set(streamers)
+        alltracked.update(viewcounts.keys())
+        alltracked.update(p.streamer for p in socket_to_presence.values() if p.streamer)
+        for streamer in alltracked:
+            cursor = data.execute(
+                "SELECT `key` FROM streamersettings WHERE username = :username",
+                {"username": streamer},
+            )
+            if cursor.rowcount == 1:
+                result = cursor.fetchone()
+
+                # Figure out if the stream itself is live.
+                live = stream_live(result['key'], first_quality())
+
+                # Grab viewer count, active chatters.
+                viewers = stream_count(streamer) if live else 0
+                oldviewers = viewcounts.get(streamer, -1)
+
+                if viewers != oldviewers:
+                    viewcounts[streamer] = viewers
+                    insert_event(
+                        data,
+                        ViewerCountEvent(
+                            now(),
+                            streamer,
+                            viewers,
+                        )
+                    )
 
         if now() - last_update >= 5:
             # Delta our emojis and send the deltas to clients.
