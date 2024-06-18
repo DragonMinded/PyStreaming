@@ -341,10 +341,56 @@ class UnmuteUserEvent(Event):
         return event
 
 
+class SetDescriptionEvent(Event):
+    __TYPE__ = "set_description"
+
+    def __init__(self, timestamp: int, streamer: str, description: str) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"description": description})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "SetDescriptionEvent":
+        event = SetDescriptionEvent(
+            timestamp,
+            streamer,
+            str(meta["description"]),
+        )
+        event.id = eid
+        return event
+
+
+class SetViewerPasswordEvent(Event):
+    __TYPE__ = "set_viewer_password"
+
+    def __init__(self, timestamp: int, streamer: str, password: Optional[str]) -> None:
+        super().__init__(None, timestamp, streamer, self.__TYPE__, {"password": password})
+
+    @staticmethod
+    def __from_db__(
+        eid: int,
+        timestamp: int,
+        streamer: str,
+        meta: Dict[str, object]
+    ) -> "SetViewerPasswordEvent":
+        event = SetViewerPasswordEvent(
+            timestamp,
+            streamer,
+            str(meta["password"]) if meta["password"] else None,
+        )
+        event.id = eid
+        return event
+
+
 __VALID_EVENTS: List[Type[Event]] = [
     StartStreamingEvent,
     StopStreamingEvent,
     ViewerCountEvent,
+    SetDescriptionEvent,
+    SetViewerPasswordEvent,
     JoinChatEvent,
     ChangeNameEvent,
     LeaveChatEvent,

@@ -17,6 +17,8 @@ from events import (
     DemodUserEvent,
     MuteUserEvent,
     UnmuteUserEvent,
+    SetDescriptionEvent,
+    SetViewerPasswordEvent,
     insert_event,
 )
 from helpers import (
@@ -1010,8 +1012,16 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             streamer = socket_to_info[request.sid].streamer
             description = emotes(message.strip())
             data.execute(
-                "UPDATE streamersettings SET `description` = :description WHERE `username` = :streamer",
+                "UPDATE streamersettings SET `description` = :description WHERE `username` = :streamer LIMIT 1",
                 {"streamer": streamer, "description": description}
+            )
+            insert_event(
+                data,
+                SetDescriptionEvent(
+                    now(),
+                    streamer,
+                    description,
+                )
             )
 
             socketio.emit(
@@ -1029,11 +1039,21 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 return
 
             streamer = socket_to_info[request.sid].streamer
+            message = message.strip()
             if message:
                 data.execute(
-                    "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer",
+                    "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer LIMIT 1",
                     {"streamer": streamer, "password": message}
                 )
+                insert_event(
+                    data,
+                    SetViewerPasswordEvent(
+                        now(),
+                        streamer,
+                        message,
+                    )
+                )
+
                 socketio.emit(
                     'server',
                     {'msg': f"Stream password set to \"{message}\"!"},
@@ -1055,9 +1075,18 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 )
             else:
                 data.execute(
-                    "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer",
+                    "UPDATE streamersettings SET `streampass` = :password WHERE `username` = :streamer LIMIT 1",
                     {"streamer": streamer, "password": None}
                 )
+                insert_event(
+                    data,
+                    SetViewerPasswordEvent(
+                        now(),
+                        streamer,
+                        None,
+                    )
+                )
+
                 socketio.emit(
                     'server',
                     {'msg': "Stream password removed!"},

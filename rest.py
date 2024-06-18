@@ -16,6 +16,8 @@ from data import Data
 from events import (
     StartStreamingEvent,
     StopStreamingEvent,
+    SetDescriptionEvent,
+    SetViewerPasswordEvent,
     insert_event,
 )
 from presence import stream_count, users_in_room
@@ -429,17 +431,36 @@ def updateinfo() -> Response:
     content = request.json
     if isinstance(content, dict):
         if 'description' in content:
+            description = str(content["description"] or "")
             data.execute(
                 "UPDATE streamersettings SET description = :description WHERE username = :username LIMIT 1",
-                {"username": streamer, "description": str(content["description"] or "")},
+                {"username": streamer, "description": description},
+            )
+            insert_event(
+                data,
+                SetDescriptionEvent(
+                    now(),
+                    streamer,
+                    description,
+                )
             )
         if 'streampass' in content:
             password = content["streampass"]
             if not password:
                 password = None
+            else:
+                password = str(password)
             data.execute(
                 "UPDATE streamersettings SET streampass = :password WHERE username = :username LIMIT 1",
                 {'username': streamer, 'password': password},
+            )
+            insert_event(
+                data,
+                SetViewerPasswordEvent(
+                    now(),
+                    streamer,
+                    password,
+                )
             )
 
     return __info(data, streamer)

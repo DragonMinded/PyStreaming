@@ -4,6 +4,8 @@ import yaml
 from typing import Any, Dict, Optional
 
 from data import Data, DBCreateException
+from events import SetDescriptionEvent, SetViewerPasswordEvent, insert_event
+from helpers import now
 
 
 class CLIException(Exception):
@@ -96,11 +98,19 @@ def streamdescription(config: Dict[str, Any], username: str, description: Option
     """
 
     if not description:
-        description = None
+        description = ""
     data = Data(config)
     data.execute(
         "UPDATE streamersettings SET description = :description WHERE username = :username",
         {'username': username, 'description': description},
+    )
+    insert_event(
+        data,
+        SetDescriptionEvent(
+            now(),
+            username,
+            description,
+        )
     )
     data.close()
 
@@ -118,6 +128,14 @@ def streampassword(config: Dict[str, Any], username: str, password: Optional[str
     data.execute(
         "UPDATE streamersettings SET streampass = :password WHERE username = :username",
         {'username': username, 'password': password},
+    )
+    insert_event(
+        data,
+        SetViewerPasswordEvent(
+            now(),
+            username,
+            password,
+        )
     )
     data.close()
 
