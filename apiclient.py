@@ -2,7 +2,7 @@ import argparse
 import requests
 import sys
 from requests.auth import HTTPBasicAuth
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class APIException(Exception):
@@ -96,6 +96,48 @@ def send_message(
         raise APIException("Server returned error response")
 
 
+class Message:
+    def __init__(self, msgtype: str, timestamp: int, name: Optional[str], message: str) -> None:
+        self.msgtype = msgtype
+        self.timestamp = timestamp
+        self.name = name
+        self.message = message
+
+    def __repr__(self) -> str:
+        return f"Message(msgtype={self.msgtype!r}, timestamp={self.timestamp!r}, name={self.name!r}, message={self.message!r})"
+
+
+def get_messages(
+    domain: str,
+    streamer: str,
+    streamkey: str,
+    *,
+    limit: Optional[int] = None,
+    last_stream_only: Optional[bool] = None,
+) -> List[Message]:
+    if limit is not None and limit < 0:
+        raise APIException("Cannot request a negative limit!")
+
+    params: Dict[str, str] = {}
+    if limit is not None:
+        params["limit"] = str(limit)
+    if last_stream_only is not None:
+        params["lastStreamOnly"] = "true" if last_stream_only else "false"
+
+    resp = requests.get(f"{domain}/api/messages", auth=HTTPBasicAuth(streamer, streamkey), params=params)
+    if resp.status_code == 401:
+        raise APIException(f"You are not authorized to make requests on behalf of {streamer}")
+    if resp.status_code != 200:
+        raise APIException("Server returned error response")
+
+    jsondata = resp.json()
+
+    def convert_message(m: Dict[str, Any]) -> Message:
+        return Message(m["type"], m["timestamp"], m.get("name"), m["message"])
+
+    return [convert_message(m) for m in jsondata]
+
+
 class CLIException(Exception):
     pass
 
@@ -183,6 +225,27 @@ if __name__ == "__main__":
         help="actual message to send to the chat of the streamer",
     )
 
+    # Retrieve messages sent to the stream.
+    getmessages_parser = commands.add_parser(
+        "getmessages",
+        help="retrieve messages sent to the chat of the streamer",
+        description="Retrieve messages sent to the chat of the streamer.",
+    )
+    getmessages_parser.add_argument(
+        "-o",
+        "--last-stream-only",
+        action="store_true",
+        help="specify that only messages sent during the most recent stream be returned",
+    )
+    getmessages_parser.add_argument(
+        "-l",
+        "--limit",
+        metavar="LIMIT",
+        type=int,
+        default=None,
+        help="limit to only the last LIMIT messages sent to the chat",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -204,6 +267,11 @@ if __name__ == "__main__":
         elif args.operation == "sendmessage":
             send_message(args.domain, args.username, args.key, messagetype=args.type, message=args.contents)
             print("Message sent on behalf of streamer!")
+
+        elif args.operation == "getmessages":
+            messages = get_messages(args.domain, args.username, args.key, limit=args.limit, last_stream_only=args.last_stream_only)
+            for message in messages:
+                print(message)
 
         else:
             raise CLIException(f"Unrecognized operation {args.operation}")

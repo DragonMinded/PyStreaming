@@ -8,16 +8,21 @@ from flask import (
     make_response,
     url_for,
 )
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 from werkzeug.datastructures import Authorization
 
 from app import app, config, request
 from data import Data
 from events import (
+    Event,
     StartStreamingEvent,
     StopStreamingEvent,
     SetDescriptionEvent,
     SetViewerPasswordEvent,
+    SendBroadcastEvent,
+    SendMessageEvent,
+    SendActionEvent,
+    get_events,
     insert_event,
 )
 from presence import stream_count, users_in_room
@@ -464,6 +469,66 @@ def updateinfo() -> Response:
             )
 
     return __info(data, streamer)
+
+
+@app.route('/api/messages', methods=["GET"])
+def getmessages() -> Response:
+    data = mysql()
+    streamer = get_auth(data, request.authorization)
+    if not streamer:
+        abort(401)
+
+    # Offer ability to limit to number of messages.
+    limitStr = request.args.get('limit', '')
+    if limitStr:
+        limit = int(limitStr)
+    else:
+        limit = None
+
+    # Offer ability to limit to only the last active stream.
+    lastStreamOnly = request.args.get('lastStreamOnly', '')
+    startEvent: Optional[Event] = None
+    if lastStreamOnly.lower() == "true":
+        startEvents = get_events(data, streamer=streamer, types=[StartStreamingEvent], limit=1)
+        if startEvents:
+            startEvent = startEvents[0]
+        else:
+            # No active stream, so no events to return.
+            return make_response(jsonify([]))
+
+    all_events = get_events(
+        data,
+        streamer=streamer,
+        types=[SendBroadcastEvent, SendMessageEvent, SendActionEvent],
+        after=startEvent,
+        limit=limit
+    )
+
+    # Now, serialize these out.
+    output: List[Dict[str, Union[str, int]]] = []
+    for event in all_events:
+        if isinstance(event, SendBroadcastEvent):
+            output.append({
+                "type": "broadcast",
+                "timestamp": event.timestamp,
+                "message": event.broadcast,
+            })
+        elif isinstance(event, SendMessageEvent):
+            output.append({
+                "type": "message",
+                "timestamp": event.timestamp,
+                "name": event.name,
+                "message": event.message,
+            })
+        elif isinstance(event, SendActionEvent):
+            output.append({
+                "type": "action",
+                "timestamp": event.timestamp,
+                "name": event.name,
+                "message": event.action,
+            })
+
+    return make_response(jsonify(output))
 
 
 @app.route('/api/messages', methods=["POST"])

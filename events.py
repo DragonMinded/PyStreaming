@@ -75,6 +75,14 @@ class SendMessageEvent(Event):
     def __init__(self, timestamp: int, streamer: str, name: str, message: str) -> None:
         super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name, "message": message})
 
+    @property
+    def name(self) -> str:
+        return str(self.meta["name"])
+
+    @property
+    def message(self) -> str:
+        return str(self.meta["message"])
+
     @staticmethod
     def __from_db__(
         eid: int,
@@ -97,6 +105,14 @@ class SendDrawingEvent(Event):
 
     def __init__(self, timestamp: int, streamer: str, name: str, drawing: str) -> None:
         super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name, "drawing": drawing})
+
+    @property
+    def name(self) -> str:
+        return str(self.meta["name"])
+
+    @property
+    def drawing(self) -> str:
+        return str(self.meta["drawing"])
 
     @staticmethod
     def __from_db__(
@@ -121,6 +137,14 @@ class SendActionEvent(Event):
     def __init__(self, timestamp: int, streamer: str, name: str, action: str) -> None:
         super().__init__(None, timestamp, streamer, self.__TYPE__, {"name": name, "action": action})
 
+    @property
+    def name(self) -> str:
+        return str(self.meta["name"])
+
+    @property
+    def action(self) -> str:
+        return str(self.meta["action"])
+
     @staticmethod
     def __from_db__(
         eid: int,
@@ -143,6 +167,10 @@ class SendBroadcastEvent(Event):
 
     def __init__(self, timestamp: int, streamer: str, broadcast: str) -> None:
         super().__init__(None, timestamp, streamer, self.__TYPE__, {"broadcast": broadcast})
+
+    @property
+    def broadcast(self) -> str:
+        return str(self.meta["broadcast"])
 
     @staticmethod
     def __from_db__(
@@ -420,18 +448,22 @@ def get_events(
     data: Data,
     *,
     streamer: str,
-    type: Optional[str] = None,
+    types: Optional[List[Type[Event]]] = None,
     after: Optional[Event] = None,
     limit: Optional[int] = None,
 ) -> List[Event]:
-    sql = "SELECT * FROM events WHERE streamer = :streamer"
+    sql = "SELECT * FROM events WHERE username = :streamer"
     params: Dict[str, object] = {
         'streamer': streamer,
     }
 
-    if type is not None:
-        sql += " AND type = :type"
-        params['type'] = type
+    if types is not None:
+        # Couldn't be an empty list.
+        if not types:
+            return []
+
+        sql += " AND type IN :types"
+        params['types'] = [t.__TYPE__ for t in types]
     if after is not None:
         if after.id is None:
             raise Exception("Cannot select after an event that hasn't been persisted!")
@@ -458,7 +490,7 @@ def get_events(
                     json.loads(row["meta"]),
                 ))
                 break
-            else:
-                raise Exception(f"Invalid type {etype} found in database!")
+        else:
+            raise Exception(f"Invalid type {etype} found in database!")
 
-    return results
+    return results[::-1]
