@@ -377,7 +377,8 @@ clients without introducing a security hole. If you set everything up correctly
 you will be able to visit [http://coolstreamingsite.com](http://coolstreamingsite.com)
 and view your streams! Note that you should change that domain if you are hosing this
 under a different DNS entry. If you do not have a DNS entry, just use your server's
-public IP address instead.
+public IP address instead. Note also that if you want to use the remote control API
+you should also protect the server with SSL.
 
 ## Port forwarding and Firewall
 
@@ -407,6 +408,31 @@ be inserted by surrounding the name of the emoji with ":" characters. Note that 
 a word with ":" will pop up an emoji type-ahead search. Similarly, starting a word with
 "@" will pop up a username type-ahead search.
 
+# Remote Control API
+
+Rudimentary remote control over the stream is provided by a REST API. Currently it is
+possible to grab general info about a stream (such as its live status, viewer count,
+members in chat, description, and stream viewing password), update the description,
+update the stream viewing password, send a message on behalf of the streamer, and retrieve
+messages written in the chat. There is also an example API client that shows how to
+operate with the remote control API. Note that basic auth is used to communicate
+credentials between the API client and the remote host, so it is highly recommended to
+set up SSL on the host you are running before attempting to use the remote control API.
+
+If you want to run it, you can see what's available with the following command:
+
+```
+python3 apiclient.py --help
+```
+
+If you wanted to get the information from a streamer named "coolguy" who uses stream key
+"coolkey" on the remote streaming site [https://coolstreamingsite.com](https://coolstreamingsite.com)
+you would run the same command like so:
+
+```
+python3 apiclient.py https://coolstreamingsite.com --username coolguy --key coolkey getinfo
+```
+
 # Future Enhancements
 
  * Kick and ban from chat feature based on client IP. Not currently necessary but might become so.
@@ -416,3 +442,4 @@ a word with ":" will pop up an emoji type-ahead search. Similarly, starting a wo
  * Better front page with streamer highlights and such.
  * Better mobile support across the board.
  * Multi-theme support and theme selection.
+ * Stream analytics such as chatters, viewers, duration, etc.
