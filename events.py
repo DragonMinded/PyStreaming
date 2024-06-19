@@ -439,8 +439,9 @@ def insert_event(data: Data, event: Event) -> None:
 
     cursor = data.execute(
         "INSERT INTO events (`timestamp`, `username`, `type`, `meta`) VALUES (:ts, :streamer, :type, :meta)",
-        {'ts': event.timestamp, 'streamer': event.streamer, 'type': event.type, 'meta': json.dumps(event.meta)}
+        {'ts': event.timestamp, 'streamer': event.streamer.lower(), 'type': event.type, 'meta': json.dumps(event.meta)}
     )
+    event.streamer = event.streamer.lower()
     event.id = cursor.lastrowid
 
 
@@ -454,7 +455,7 @@ def get_events(
 ) -> List[Event]:
     sql = "SELECT * FROM events WHERE username = :streamer"
     params: Dict[str, object] = {
-        'streamer': streamer,
+        'streamer': streamer.lower(),
     }
 
     if types is not None:
