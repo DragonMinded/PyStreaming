@@ -30,7 +30,7 @@
       </script>
       <script src="{{ url_for('static', filename='socket.io-3.0.1.min.js') }}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='autocomplete.js') }}?{{ cache_bust }}"></script>
-      <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
+      <script src="{{ url_for('static', filename='twemoji-14.0.2.min.js') }}?{{ cache_bust }}" crossorigin="anonymous"></script>
   </head>
 
   <body>
@@ -175,11 +175,12 @@
           var autoscroll = true;
           var users = [];
           var linkifyOptions = { defaultProtocol: "http", target: "_blank", validate: { email: (x) => false } };
+          var twemojiOptions = { base: "{{ url_for('static', filename='twemoji/') }}" }
 
           // Support previews of emoji and emotes.
           var options = [];
           for (const [key, value] of Object.entries(emojis)) {
-            options.push({text: key, type: "emoji", preview: "&nbsp;" + twemoji.parse(value)});
+            options.push({text: key, type: "emoji", preview: "&nbsp;" + twemoji.parse(value, twemojiOptions)});
           }
           for (const [key, value] of Object.entries(emotes)) {
             options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
@@ -283,7 +284,7 @@
             Object.keys(emojis).forEach(function(emoji) {
                 str = str.replaceAll(emoji, emojis[emoji]);
             });
-            str = twemoji.parse(str);
+            str = twemoji.parse(str, twemojiOptions);
             Object.keys(emotes).forEach(function(emote) {
                 str = str.replaceAll(emote, "<img src='" + emotes[emote] + "' class='emote' alt='" + emote + "' />");
             });
