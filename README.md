@@ -443,3 +443,9 @@ python3 apiclient.py https://coolstreamingsite.com --username coolguy --key cool
  * Better mobile support across the board.
  * Multi-theme support and theme selection.
  * Stream analytics such as chatters, viewers, duration, etc.
+
+# Development
+
+This code is `mypy` and `flake8` clean. Please keep it that way if you are submitting a pull request.
+This code hosts a downloaded copy of all assets that would normally be fetched through a CDN. This is
+due to several reasons, but please keep it that way when adding or updating dependencies.
