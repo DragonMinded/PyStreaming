@@ -86,8 +86,12 @@ streamer page.
 ## nginx Configuration
 
 We will use nginx as the RTMP listening server and HLS transcoder which powers
-the media portion of this setup. First, you will want to edit your `nginx.conf`
-to include a section similar to the following:
+the media portion of this setup. If you are on modern Debian or Ubuntu, the stock
+`nginx.conf` may have a footgun. Ensure that either you have `worker_processes 1;`
+in your top-level config, or if you use `worker_processes auto;` ensure that you
+have `multi_accept on;` in your `events` section. Failure to do either of these
+will cause playback issues as the connections will hang. Then, you will want to
+edit your `nginx.conf` to include a section similar to the following:
 
 ```
 rtmp {
