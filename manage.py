@@ -175,6 +175,28 @@ def streammastodonurl(config: Dict[str, Any], username: str, url: Optional[str])
     data.close()
 
 
+def streamchatsetting(config: Dict[str, Any], username: str, state: Optional[str]) -> None:
+    """
+    Given a valid config and a valid chat setting, updates that streamer's chat default to
+    either enabled, disabled or hidden.
+    """
+
+    if state:
+        state = state.lower()
+    if not state or state == "enabled":
+        state = None
+
+    if state not in {"disabled", "hidden", None}:
+        raise CLIException("You must provide a valid chat setting, which is one of 'enabled', 'disabled' or 'hidden'!")
+
+    data = Data(config)
+    data.execute(
+        "UPDATE streamersettings SET `chat` = :state WHERE username = :username",
+        {'username': username, 'state': state},
+    )
+    data.close()
+
+
 def addemote(config: Dict[str, Any], alias: str, uri: str) -> None:
     """
     Given a valid config and an emote alias and a URI where that emote can be found, adds the emotes
@@ -446,6 +468,28 @@ def main() -> None:
         help="the updated mastodon URL, leave out to unset",
     )
 
+    # A few params for this one
+    chatsetting_parser = streamer_commands.add_parser(
+        "chat",
+        help="change the default chat setting for a streamer",
+        description="Change the default chat setting for a streamer.",
+    )
+    chatsetting_parser.add_argument(
+        "-u",
+        "--username",
+        type=str,
+        required=True,
+        help="streamer username to modify the chat setting for",
+    )
+    chatsetting_parser.add_argument(
+        "-s",
+        "--setting",
+        type=str,
+        choices=["enabled", "disabled", "hidden"],
+        default=None,
+        help="the updated chat setting, where enabled is visible on page load, disabled is fully disabled, and hidden is hidden but enabled on page load",
+    )
+
     # Another subcommand here.
     emote_parser = commands.add_parser(
         "emote",
@@ -571,6 +615,8 @@ def main() -> None:
                 streampassword(config, args.username, args.password)
             elif args.streamer == "mastodon":
                 streammastodonurl(config, args.username, args.url)
+            elif args.streamer == "chat":
+                streamchatsetting(config, args.username, args.setting)
             else:
                 raise CLIException(f"Unknown streamer operation '{args.streamer}'")
 

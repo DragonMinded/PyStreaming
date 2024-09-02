@@ -23,6 +23,7 @@ streamersettings = Table(
     metadata,
     Column('username', String(256), nullable=False, unique=True),
     Column('key', String(256), nullable=False, unique=True),
+    Column('chat', String(16)),
     Column('description', String(512)),
     Column('streampass', String(256)),
     Column('mastodon', String(256)),

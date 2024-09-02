@@ -75,7 +75,7 @@ def index() -> str:
 def stream(streamer: str) -> Response:
     data = mysql()
     cursor = data.execute(
-        "SELECT username, streampass, mastodon FROM streamersettings WHERE username = :username",
+        "SELECT username, streampass, mastodon, chat FROM streamersettings WHERE username = :username",
         {"username": streamer},
     )
     if cursor.rowcount != 1:
@@ -121,6 +121,7 @@ def stream(streamer: str) -> Response:
             'stream.html',
             streamer=result["username"],
             mastodon=result["mastodon"],
+            chat=result["chat"] or "enabled",
             playlists=playlists,
             emojis=emojis,
             emotes=emotes,

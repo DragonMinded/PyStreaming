@@ -592,6 +592,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 messages.append("/settings - display all stream settings")
                 messages.append("/description <text> - set the stream description")
                 messages.append("/password [<text>] - set or unset the stream password")
+                messages.append("/chat enabled/hidden - sets the chat to enabled or hidden for new viewers")
                 messages.append("/mod <user> - grant moderator privileges to user")
                 messages.append("/demod <user> - revoke moderator privileges to user")
             if socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator:
@@ -622,7 +623,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
 
             streamer = socket_to_info[request.sid].streamer
             cursor = data.execute(
-                "SELECT `description`, `streampass` FROM streamersettings WHERE `username` = :streamer",
+                "SELECT `description`, `streampass`, `chat` FROM streamersettings WHERE `username` = :streamer",
                 {"streamer": streamer}
             )
             if cursor.rowcount != 1:
@@ -657,6 +658,15 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                         {'msg': "No stream password"},
                         room=request.sid,
                     )
+
+                # We want empty columns to represent the default state of enabled.
+                chatsetting = result['chat'] or "enabled"
+                socketio.emit(
+                    'server',
+                    {'msg': f"Chat defaults to {chatsetting}"},
+                    room=request.sid,
+                )
+
         elif command in ["/mute", "/quiet"]:
             if not (socket_to_info[request.sid].admin or socket_to_info[request.sid].moderator):
                 socketio.emit(
@@ -1027,6 +1037,39 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             socketio.emit(
                 'server',
                 {'msg': "Stream description updated!"},
+                room=request.sid,
+            )
+        elif command == "/chat":
+            if not socket_to_info[request.sid].admin:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            streamer = socket_to_info[request.sid].streamer
+
+            # Grab the actual setting, don't allow setting disabled because somebody could soft-lock themselves.
+            setting = message.strip().lower()
+            if setting not in {"hidden", "enabled"}:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized chat setting '{setting}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            if not setting or setting == "enabled":
+                setting = None
+            data.execute(
+                "UPDATE streamersettings SET `chat` = :setting WHERE `username` = :streamer LIMIT 1",
+                {"streamer": streamer, "setting": setting}
+            )
+
+            socketio.emit(
+                'server',
+                {'msg': "Stream chat setting updated!"},
                 room=request.sid,
             )
         elif command in ["/password"]:
