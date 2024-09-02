@@ -19,6 +19,7 @@
       <script src="{{ url_for('static', filename='linkify.min.js')}}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='linkify-html.min.js')}}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='video-js-8.3.0.min.js') }}?{{ cache_bust }}"></script>
+      <script src="{{ url_for('static', filename='videojs-persist-0.2.0.min.js') }}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='silvermine-videojs-quality-selector.min.js') }}?{{ cache_bust }}"></script>
       <script>
         videojs.addLanguage(
@@ -149,8 +150,12 @@
           // Add quality selector to the stream so that people can choose lower bitrates.
           videojs("my-video").ready(function(){
             var player = this;
+
             player.controlBar.addChild('QualitySelector');
           });
+
+          // Save volume/mute state on stream auto-refresh or disconnect/reconnect.
+          videojs("my-video").persist();
 
           // Stop forms from submitting POST requests.
           $( '#login' ).on( 'submit', function( e ) {
