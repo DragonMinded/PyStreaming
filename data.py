@@ -25,6 +25,7 @@ streamersettings = Table(
     Column('key', String(256), nullable=False, unique=True),
     Column('description', String(512)),
     Column('streampass', String(256)),
+    Column('mastodon', String(256)),
     mysql_charset="utf8mb4",
 )
 

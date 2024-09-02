@@ -85,9 +85,12 @@ def liststreamers(config: Dict[str, Any]) -> None:
     """
 
     data = Data(config)
-    cursor = data.execute("SELECT username FROM streamersettings")
+    cursor = data.execute("SELECT username, mastodon FROM streamersettings")
     for result in cursor.fetchall():
-        print(f"Streamer: {result['username']}")
+        details = ""
+        if result['mastodon']:
+            details += f" (mastodon: {result['mastodon']})"
+        print(f"Streamer: {result['username']}{details}")
     data.close()
 
 
@@ -152,6 +155,22 @@ def streamerkey(config: Dict[str, Any], username: str, key: Optional[str]) -> No
     data.execute(
         "UPDATE streamersettings SET `key` = :key WHERE username = :username",
         {'username': username, 'key': key},
+    )
+    data.close()
+
+
+def streammastodonurl(config: Dict[str, Any], username: str, url: Optional[str]) -> None:
+    """
+    Given a valid config and a valid streamer username, updates that streamer's mastodon URL that
+    identifies them as an owner of this streaming page.
+    """
+
+    if not url:
+        url = None
+    data = Data(config)
+    data.execute(
+        "UPDATE streamersettings SET `mastodon` = :url WHERE username = :username",
+        {'username': username, 'url': url},
     )
     data.close()
 
@@ -388,8 +407,8 @@ def main() -> None:
     # A few params for this one
     streampassword_parser = streamer_commands.add_parser(
         "password",
-        help="change or remove a streamer's stream password",
-        description="Change or remove a streamer's stream password.",
+        help="add, change or remove a streamer's stream password",
+        description="Add, change or remove a streamer's stream password.",
     )
     streampassword_parser.add_argument(
         "-u",
@@ -404,6 +423,27 @@ def main() -> None:
         type=str,
         default=None,
         help="the updated stream password to access the stream page when the specified streamer is live, leave out to unset",
+    )
+
+    # A few params for this one
+    mastodonurl_parser = streamer_commands.add_parser(
+        "mastodon",
+        help="add, change or remove a streamer's mastodon account URL",
+        description="Add, change or remove a streamer's mastodon account URL.",
+    )
+    mastodonurl_parser.add_argument(
+        "-u",
+        "--username",
+        type=str,
+        required=True,
+        help="streamer username to modify the mastodon URL for",
+    )
+    mastodonurl_parser.add_argument(
+        "-l",
+        "--url",
+        type=str,
+        default=None,
+        help="the updated mastodon URL, leave out to unset",
     )
 
     # Another subcommand here.
@@ -529,6 +569,8 @@ def main() -> None:
                 streamdescription(config, args.username, args.description)
             elif args.streamer == "password":
                 streampassword(config, args.username, args.password)
+            elif args.streamer == "mastodon":
+                streammastodonurl(config, args.username, args.url)
             else:
                 raise CLIException(f"Unknown streamer operation '{args.streamer}'")
 

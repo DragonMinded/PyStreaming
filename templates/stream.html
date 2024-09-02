@@ -35,6 +35,9 @@
   </head>
 
   <body>
+    {% if mastodon %}
+    <div style="display:none"><a rel="me" href="{{mastodon}}">Mastodon</a></div>
+    {% endif %}
     <div class="content">
       <div class="stream-pane">
         <div class="stream">
