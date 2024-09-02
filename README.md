@@ -6,7 +6,10 @@ moderation commands such as mute and rename available, live presence indication
 and a layer that ensures stream keys are never exposed publicly. Streams can be
 password-protected against arbitrary viewership. The stream chat allows for custom
 emoji to be added by the site admin as well as simple pictochat-style drawings
-to be doodled and submitted by chatters.
+to be doodled and submitted by chatters. The stream chat itself can be disabled
+or default to hidden on a per-streamer basis by the site admin. The site admin
+can also assign Mastodon account ownership to a particular streamer so that the
+streaming page can be displayed as a verified link.
 
 # Setup
 
