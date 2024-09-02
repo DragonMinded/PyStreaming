@@ -4,14 +4,16 @@ send video and audio to an RTMP endpoint served by nginx and the stream will
 show up for clients on a web page with included stream chat. There are simple
 moderation commands such as mute and rename available, live presence indication
 and a layer that ensures stream keys are never exposed publicly. Streams can be
-password-protected against arbitrary viewership. The stream chat allows for cusom
-emoji to be added as well as simple pictochat-style drawings to be submitted.
+password-protected against arbitrary viewership. The stream chat allows for custom
+emoji to be added by the site admin as well as simple pictochat-style drawings
+to be doodled and submitted by chatters.
 
 # Setup
 
 ## Dependencies
 
-This project assumes Python 3.6 or higher, due to (partial) use of type-hints.
+This project assumes Python 3.6 or higher, due to use of type-hints. However,
+newer is better and this has been tested all the way up through Python 3.12.
 It assumes a version of nginx with nginx-rtmp-module compiled and available.
 It assumes a local, modern MySQL instance that you have permission to create
 databases on. It assumes a linux-like environment to run all of these programs.
@@ -73,9 +75,9 @@ python3 pystreaming.py --config config.yaml --port 12345
 ```
 
 This will run the application in production mode. If you want to run the
-application with more logging and auto-reloading on file changes, add `--debug`
-to the arguments. Remember that you can run the above script with `--help` to
-see options. Once this is up and running, you can visit the web page at
+application with more logging as well as auto-reloading on file changes, add
+`--debug` to the arguments. Remember that you can run the above script with
+`--help` to see options. Once this is up and running, you can visit the web page at
 [http://127.0.0.1:12345/](http://127.0.0.1:12345/). If you are setting this up
 on a remote server, substitute the server's public IP for `127.0.0.1` above.
 If you have changed the port in the above command, make sure you change the port
@@ -89,9 +91,10 @@ We will use nginx as the RTMP listening server and HLS transcoder which powers
 the media portion of this setup. If you are on modern Debian or Ubuntu, the stock
 `nginx.conf` may have a footgun. Ensure that either you have `worker_processes 1;`
 in your top-level config, or if you use `worker_processes auto;` ensure that you
-have `multi_accept on;` in your `events` section. Failure to do either of these
-will cause playback issues as the connections will hang. Then, you will want to
-edit your `nginx.conf` to include a section similar to the following:
+have `multi_accept on;` in your `events` section. Failure to ensure one or the
+other of these is done will cause playback issues as the connections will hang.
+Once you've ensured the top-level configuration is correct, you will want to edit
+your `nginx.conf` to include a section similar to the following:
 
 ```
 rtmp {
@@ -111,7 +114,8 @@ rtmp {
 
         # URL nginx will check when a user tries to stream, to verify the stream key
         # is correct. You should leave this as 127.0.0.1 because nginx should only
-        # look on the local host for the auth endpoint.
+        # look on the local host for the auth endpoint. The port listed in the below
+        # two URLs should match the port you used when running the python application.
         on_publish http://127.0.0.1:12345/auth/on_publish;
         on_publish_done http://127.0.0.1:12345/auth/on_publish_done;
 
@@ -145,15 +149,15 @@ rtmp {
 There are a few things you will want to customize in that above section based on
 your setup. First is the port in the `on_publish` section. The port must match the
 port you run your application with. If you changed your `--port` setting when you
-ran `pystreaming.py`, make sure to also change the port in `on_publish` so that nginx
-can validate streamer permissions. The path given in `hls_path` should be readable
-and writeable by the nginx user and the python server user, and should match the
-path in your `config.yaml` `hls_dir` setting. nginx will put transcoded HLS files
-in this directory and this is where the python application will look to find stream
-information.
+ran `pystreaming.py`, make sure to also change the port in `on_publish`and in
+`on_publish_done` so that nginx can validate streamer permissions. The path given
+in `hls_path` should be readable and writeable by the nginx user and the python
+server user, and should match the path in your `config.yaml` `hls_dir` setting.
+nginx will put transcoded HLS files in this directory and this is where the python
+application will look to find stream information.
 
-If you've set everything up correctly and are running `pystreaming.py` as well as nginx,
-you should be able to point OBS at `rtmp://127.0.0.1/live` and start streaming.
+If you've set everything up correctly and are running `pystreaming.py` as well as
+nginx, you should be able to point OBS at `rtmp://127.0.0.1/live` and start streaming.
 Make sure your stream key matches what you added using `manage.py` above! If you
 are setting this up on a remote server, substitute the server's public IP for
 `127.0.0.1` in the URL above. If everything is set up right, you should see the
@@ -166,7 +170,7 @@ that is based on your source configuration (most-likely in OBS or another stream
 software). If you want to provide multiple quality streams for viewers with slower
 internet connections you will need to modify your `nginx.conf` as well as your
 `config.yaml` setup. In this alternate configuration you will use ffmpeg to
-translate the incoming stream to multiple streams on the fly. First you will want
+transcode the incoming stream to multiple streams on the fly. First you will want
 to edit your `nginx.conf` to include a section similar to the following (instead of
 the above simpler config):
 
@@ -196,7 +200,8 @@ rtmp {
 
             # URL nginx will check when a user tries to stream, to verify the stream key
             # is correct. You should leave this as 127.0.0.1 because nginx should only
-            # look on the local host for the auth endpoint.
+            # look on the local host for the auth endpoint. The port listed in the below
+            # two URLs should match the port you used when running the python application.
             on_publish http://127.0.0.1:12345/auth/on_publish;
             on_publish_done http://127.0.0.1:12345/auth/on_publish_done;
 
@@ -266,20 +271,27 @@ video_qualities:
     - 480P
 ```
 
-Notice that the suffixes we provided after `$name` for the original and transcoded streams
-are all listed here. When you set the software up in this manner, a configuration gear will
-be visible on the stream for viewers where they can choose a quality. You'll want to verify
-with a test stream to ensure that your streaming server can handle the load of transcoding.
-If it can't, you'll notice that all qualities will buffer randomly and your CPU usage will
-be too high for the number of cores. If your server can't keep up, choose fewer transcodes
-and try again.
+Notice that the suffixes we provided after `$name` for the original and transcoded
+streams are all listed here. It's important to follow the naming convention outlined
+in the nginx config by using the original stream name and an underscore followed
+by the quality. This is because the python application assumes the name of the HLS
+transcoded files based on the streamer name and list of video qualities placed in
+the `config.yaml` file. When you set the software up in this manner, a configuration
+gear will be visible on the stream for viewers where they can choose a quality.
+You'll want to verify with a test stream to ensure that your streaming server can
+handle the load of transcoding. If it can't, you'll notice that all qualities will
+buffer randomly and your CPU usage will be too high for the number of cores. If
+your server can't keep up, choose fewer transcodes and try again.
 
 ## Running Behind nginx
 
 Its a good idea to serve up the web interface behind nginx instead of directly.
 This allows you to set up things such as SSL, provide the weight of nginx to deliver
-HLS files to clients and generally makes your setup more robust. First, add a
-site to `sites-available` with contents similar to the following:
+HLS files to clients and generally makes your setup more robust. Note that this
+application assumes that it will be on the root of any domain or subdomain that you
+choose to host. Subdirectories do not work due to the hardcoded location of the
+chat websocket. First, add a site to `sites-available` with contents similar to
+the following:
 
 ```
 server {
@@ -356,19 +368,26 @@ server {
 ```
 
 There are a few things you wil want to modify in this file. For starters, if you
-aren't using DNS, get rid of the `server_name` entry. If you are, make
-sure this setting matches your domain name. Next, its important that the port in
-both `proxy_pass` settings matches the port you ran your `pystreaming.py` script with.
+aren't using DNS, get rid of the `server_name` entry. If you are, make sure this
+setting matches your domain name. Next, its important that the port in both
+`proxy_pass` settings matches the port you ran your `pystreaming.py` script with.
 This should match the port in your `nginx.conf` as well. Finally, make sure the
 directory you chose to put HLS files in matches the `root` option. nginx is a bit
 weird here, since `/hls` is a subdirectory, you give it the parent of the option
-you specified in your `nginx.conf` and `config.yaml` files. So if you chose `/path/to/hls`
-as your HLS file location, you would put `/path/to` in the `root` option above. Make
-sure that the directory you chose is readable/writeable by both the nginx user
-and the user you are running `pystreaming.py` under.
+you specified in your `nginx.conf` and `config.yaml` files. So if you chose
+`/path/to/hls` as your HLS file location, you would put `/path/to` in the `root`
+option above. Make sure that the directory you chose is readable/writeable by both
+the nginx user and the user you are running `pystreaming.py` under.
 
-Once you set this up, you will want to run `pystreaming.py` again, this time with a slightly
-different set of arguments:
+Note that this example shows how to set up a non-HTTPS site which is completely
+un-encrypted. This isn't generally considered to be a good idea anymore, so it is
+recommended that you eventually set up SSL by obtaining certificates from
+[https://letsencrypt.org/](https://letsencrypt.org/) or another cert provider.
+Then, you can change your nginx configuration to instead listen for SSL traffic
+on port 443 with the certs you've obtained.
+
+Once you set this up, you will want to run `pystreaming.py` again, this time with
+a slightly different set of arguments:
 
 
 ```
@@ -376,13 +395,18 @@ python3 pystreaming.py --config config.yaml --port 12345 --nginx-proxy 1
 ```
 
 The `--nginx-proxy` command says how many hops through nginx we had to make before
-we hit `pystreaming.py`. This enables us to correctly determine the IP address of remote
+we hit `pystreaming.py`. Since we're serving this behind an nginx reverse proxy
+that count is 1. This enables us to correctly determine the IP address of remote
 clients without introducing a security hole. If you set everything up correctly
 you will be able to visit [http://coolstreamingsite.com](http://coolstreamingsite.com)
 and view your streams! Note that you should change that domain if you are hosing this
 under a different DNS entry. If you do not have a DNS entry, just use your server's
-public IP address instead. Note also that if you want to use the remote control API
-you should also protect the server with SSL.
+public IP address instead. Note also that stream passwords when authenticating with
+chat, viewer passwords when the stream is password-protected, and the remote control
+API all use whatever transport protocol is configured. That means running this under
+HTTP instead of HTTPS could expose any of those to somebody snooping on traffic.
+If you want to use the remote control API or protect any stream key or password
+from possible interception you should set up HTTPS to protect the server with SSL.
 
 ## Port forwarding and Firewall
 
@@ -396,42 +420,46 @@ not using DNS, the public IP of the server.
 # Streaming
 
 Anyone that visits a streamer's page can join the chat and watch. There is currently
-no authentication for normal chatters. To join as the stream host, use the same name
-as the stream. You will be asked for your stream key as a password to authenticate.
-So, if you were using the user `test` from the set up example, you could visit
-[http://coolstreamingsite.com/test](http://coolstreamingsite.com/test) and join the
-chat as `test`. You will be asked to provide the stream key `secretkey` in order to
-authenticate. Once you are connected to chat, type `/help` into the chat box to see
-available commands. You can assign moderators to help you moderate if you wish. Stream
-hosts and moderators can mute users, and stream hosts can change the description.
-Stream hosts and moderators can rename users as well, in case they choose a naughty name.
-All users can chat and use actions with `/me`. Similarly, all users can change their
-color with `/color` and rename themselves with `/name`. Drawings can be submitted by
-clicking the "Draw" button and sketching something cute. Standard and custom emoji can
-be inserted by surrounding the name of the emoji with ":" characters. Note that starting
-a word with ":" will pop up an emoji type-ahead search. Similarly, starting a word with
-"@" will pop up a username type-ahead search.
+no authentication for normal chatters. To join as the stream host, use the same
+name as the stream. You will be asked for your stream key as a password to
+authenticate. So, if you were using the user `test` from the set up example, you
+could visit [http://coolstreamingsite.com/test](http://coolstreamingsite.com/test)
+and join the chat as `test`. You will be asked to provide the stream key `secretkey`
+in order to authenticate. Once you are connected to chat, type `/help` into the
+chat box to see available commands. You can assign moderators to help you moderate
+if you wish. Stream hosts and moderators can mute users, and stream hosts can
+change the description. Stream hosts and moderators can rename users as well, in
+case they choose a naughty name. All users can chat and use actions with `/me`.
+Similarly, all users can change their color with `/color` and rename themselves
+with `/name`. Drawings can be submitted by clicking the "Draw" button and sketching
+something cute. Standard and custom emoji can be inserted by surrounding the name
+of the emoji with ":" characters. Note that starting a word with ":" will pop up
+an emoji type-ahead search. Similarly, starting a word with "@" will pop up a
+username type-ahead search.
 
 # Remote Control API
 
-Rudimentary remote control over the stream is provided by a REST API. Currently it is
-possible to grab general info about a stream (such as its live status, viewer count,
-members in chat, description, and stream viewing password), update the description,
-update the stream viewing password, send a message on behalf of the streamer, and retrieve
-messages written in the chat. There is also an example API client that shows how to
-operate with the remote control API. Note that basic auth is used to communicate
-credentials between the API client and the remote host, so it is highly recommended to
-set up SSL on the host you are running before attempting to use the remote control API.
+Rudimentary remote control over the stream is provided by a REST API. Currently
+it is possible to grab general info about a stream (such as its live status,
+viewer count, members in chat, description, and stream viewing password), update
+the description, update the stream viewing password, send a message on behalf
+of the streamer, and retrieve messages written in the chat. There is also an
+example API client that shows how to operate with the remote control API. Note
+that basic auth is used to communicate credentials between the API client and
+the remote host, so it is highly recommended to set up SSL on the host you are
+running before attempting to use the remote control API.
 
-If you want to run it, you can see what's available with the following command:
+If you want to check out the remote control API, you can see what's available
+with the following command:
 
 ```
 python3 apiclient.py --help
 ```
 
-If you wanted to get the information from a streamer named "coolguy" who uses stream key
-"coolkey" on the remote streaming site [https://coolstreamingsite.com](https://coolstreamingsite.com)
-you would run the same command like so:
+If you wanted to get the information from a streamer named "coolguy" who uses
+stream key "coolkey" on the remote streaming site
+[https://coolstreamingsite.com](https://coolstreamingsite.com) you would run
+the same command like so:
 
 ```
 python3 apiclient.py https://coolstreamingsite.com --username coolguy --key coolkey getinfo
@@ -450,6 +478,7 @@ python3 apiclient.py https://coolstreamingsite.com --username coolguy --key cool
 
 # Development
 
-This code is `mypy` and `flake8` clean. Please keep it that way if you are submitting a pull request.
-This code hosts a downloaded copy of all assets that would normally be fetched through a CDN. This is
-due to several reasons, but please keep it that way when adding or updating dependencies.
+This code is `mypy` and `flake8` clean. Please keep it that way if you are submitting
+a pull request. This code includes a downloaded copy of all assets that would normally
+be fetched through a CDN. This is due to several reasons, but please keep it that
+way when adding or updating dependencies.
