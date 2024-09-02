@@ -82,7 +82,7 @@ def get_color(color: str) -> Optional[int]:
 
     if color == "random":
         # Pick a random webcolor.
-        choices = [k for k in webcolors.CSS3_NAMES_TO_HEX]
+        choices = [k for k in webcolors.names(spec=webcolors.CSS3)]
         color = random.choice(choices)
 
     # Attempt to convert from any color specification to hex.

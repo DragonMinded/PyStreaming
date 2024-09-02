@@ -21,8 +21,6 @@ show_butt.addEventListener("click", function() {
 const canvas = document.getElementById("pictochat-canvas");
 const ctx = canvas.getContext("2d");
 var usercolor = "#f66";
-canvas.style["outline-color"] = usercolor;
-
 var colors = ["#000", usercolor];
 var currentCol = 0;
 ctx.strokeStyle = colors[0];
@@ -30,16 +28,19 @@ var isdraw = false;
 
 canvas.addEventListener("pointerdown", function(event) {
     isdraw = true;
-    const x = event.clientX - canvas.offsetLeft;
-    const y = event.clientY - canvas.offsetTop;
+    var rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    ctx.moveTo(x-1, y-1);
     ctx.lineTo(x, y);
     ctx.stroke();
 });
 
 canvas.addEventListener("pointermove", function(event) {
     if (!isdraw) return;
-    const x = event.clientX - canvas.offsetLeft;
-    const y = event.clientY - canvas.offsetTop;
+    var rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
     ctx.lineTo(x, y);
     ctx.stroke();
     $(send_butt).prop("disabled", false);
