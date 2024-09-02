@@ -64,6 +64,7 @@
           <div class="stream-count"></div>
         </div>
       </div>
+      <div class="chat-spacer">&nbsp;</div>
       <div class="chat-pane">
         <div class="chat-collapse">&larrb; &rarrb;</div>
         <div class="chat-boundary">
@@ -492,6 +493,7 @@
             // Allow collapsing the chat panel.
             $('div.chat-collapse').on('click', function() {
               $('div.chat-pane').toggleClass('chat-collapsed');
+              $('div.chat-spacer').toggleClass('chat-collapsed');
             });
 
             // Hide the collapse hover after some seconds, because it can be annoying.

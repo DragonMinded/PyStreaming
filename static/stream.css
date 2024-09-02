@@ -56,14 +56,30 @@ html, body {
   padding-right: 5px;
 }
 
-.chat-pane {
-  width: 335px;
+.chat-spacer {
+  width: 260px;
   padding: 0px;
   margin: 0px;
+  height: 100%;
   transition: width 0.1s ease-in-out;
 }
 
-.chat-collapsed {
+.chat-spacer.chat-collapsed {
+  width: 0px;
+}
+
+.chat-pane {
+  position: absolute;
+  right: 0px;
+  width: 335px;
+  height: 100%;
+  padding: 0px;
+  margin: 0px;
+  transition: width 0.1s ease-in-out;
+  z-index: 1000000;
+}
+
+.chat-pane.chat-collapsed {
   width: 75px;
 }
 
