@@ -57,12 +57,44 @@ html, body {
 }
 
 .chat-pane {
+  width: 335px;
+  padding: 0px;
+  margin: 0px;
+  transition: width 0.1s ease-in-out;
+}
+
+.chat-collapsed {
+  width: 75px;
+}
+
+.chat-boundary {
   padding: 0px 5px 0px 5px;
-  width: 250px;
+  margin-left: 75px;
+  height: 100%;
   display: flex;
+  position: relative;
   flex-direction: row;
   align-items: stretch;
   background: #eeeeee;
+}
+
+.chat-collapse {
+  position: absolute;
+  top: 25px;
+  width: 75px;
+  background: #eeeeee;
+  font-size: x-large;
+  padding-left: 10px;
+  padding-bottom: 3px;
+  border-radius: 5px 0px 0px 5px;
+  visibility: hidden;
+  opacity: 0;
+  transition:visibility 0.1s linear,opacity 0.1s linear;
+}
+
+.chat-pane:hover .chat-collapse:not(.chat-collapse-hidden) {
+  visibility: visible;
+  opacity: 1;
 }
 
 .chat-inner {
