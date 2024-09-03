@@ -737,6 +737,10 @@
               updateColor(msg.color);
             });
 
+            socket.on( 'change theme', function( msg ) {
+              $('#themecss').attr('href', themelink.replace(':theme:', msg.theme));
+            });
+
             socket.on( 'add emote', function( msg ) {
               addemote(msg.key, msg.uri);
             });

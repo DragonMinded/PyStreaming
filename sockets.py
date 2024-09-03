@@ -3,7 +3,7 @@ from flask_socketio import join_room  # type: ignore
 from PIL import Image
 from typing import Any, Dict, List, Optional, Set
 
-from app import socketio, request
+from app import socketio, config, request
 from events import (
     JoinChatEvent,
     ChangeNameEvent,
@@ -414,6 +414,13 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
         socketio.emit('error', {'msg': 'User is not authenticated?'}, room=request.sid)
         return
 
+    # Calculate themes.
+    themes = config.get('themes', [])
+    if not themes:
+        themes = ['default']
+    if len(themes) == 1:
+        themes = []
+
     # Update user presence information
     update_presence(request.sid, socket_to_info[request.sid].streamer)
 
@@ -599,6 +606,10 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 messages.append("/mute <user> - mute user")
                 messages.append("/unmute <user> - unmute user")
                 messages.append("/rename <user> <new name> - rename user")
+
+            if themes:
+                messages.append("/theme <theme> - change site theme")
+                messages.append("/themes - list available site themes")
 
             for message in messages:
                 socketio.emit(
@@ -1007,7 +1018,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             else:
                 socketio.emit(
                     'server',
-                    {'msg': f"Unrecognized user '{message}'"},
+                    {'msg': f"Unrecognized user '{message}'."},
                     room=request.sid,
                 )
         elif command in ["/desc", "/description"]:
@@ -1037,6 +1048,48 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
             socketio.emit(
                 'server',
                 {'msg': "Stream description updated!"},
+                room=request.sid,
+            )
+        elif command == "/themes":
+            if not themes:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            socketio.emit(
+                'server',
+                {'msg': "Available themes: " + ", ".join(themes)},
+                room=request.sid,
+            )
+        elif command == "/theme":
+            if not themes:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized command '{command}', use '/help' for info."},
+                    room=request.sid,
+                )
+                return
+
+            newtheme = message.strip()
+            if newtheme not in themes:
+                socketio.emit(
+                    'server',
+                    {'msg': f"Unrecognized theme '{newtheme}', choose from " + ", ".join(themes) + "."},
+                    room=request.sid,
+                )
+                return
+
+            socketio.emit(
+                'change theme',
+                {'theme': newtheme},
+                room=request.sid,
+            )
+            socketio.emit(
+                'server',
+                {'msg': f"Theme changed to {newtheme}!"},
                 room=request.sid,
             )
         elif command == "/chat":
