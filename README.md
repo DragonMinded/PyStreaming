@@ -9,7 +9,9 @@ emoji to be added by the site admin as well as simple pictochat-style drawings
 to be doodled and submitted by chatters. The stream chat itself can be disabled
 or default to hidden on a per-streamer basis by the site admin. The site admin
 can also assign Mastodon account ownership to a particular streamer so that the
-streaming page can be displayed as a verified link.
+streaming page can be displayed as a verified link. If the site admin makes
+multiple themes available, users of the site can select a theme both when
+connecting to chat and within the chat using a command.
 
 # Setup
 
@@ -476,7 +478,6 @@ python3 apiclient.py https://coolstreamingsite.com --username coolguy --key cool
  * Rate limiting for chat actions. Not currently necessary but I'm sure that it will end up being needed.
  * Better front page with streamer highlights and such.
  * Better mobile support across the board.
- * Multi-theme support and theme selection.
  * Stream analytics such as chatters, viewers, duration, etc.
 
 # Development
