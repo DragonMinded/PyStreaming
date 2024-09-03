@@ -10,6 +10,10 @@ database:
 
 # Key used in Flask for encryption of cookies and the like.
 secret_key: 'this_should_be_changed_to_something_long_and_random'
+# List of themes, the first one being the default, which users should have access to.
+# These should identically match the theme directories inside static/themes/
+themes:
+  - default
 # HLS output directory as configured in your RTMP transcoding server.
 hls_dir: '/path/to/hls'
 # Timeout for liveness indicator, where playlists older than this many seconds are considered non-live. If not

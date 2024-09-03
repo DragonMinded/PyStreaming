@@ -10,7 +10,7 @@
                url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.woff') }}") format("woff");
         }
       </style>
-      <link href="{{ url_for('static', filename='themes/default/stream.css') }}?{{ cache_bust }}" rel="stylesheet" />
+      <link href="{{ url_for('static', filename='themes/' + default + '/stream.css') }}?{{ cache_bust }}" id="themecss" rel="stylesheet" />
       <link href="{{ url_for('static', filename='stream-vertical.css') }}?{{ cache_bust }}" media="screen and (max-aspect-ratio: 4/3)" rel="stylesheet" />
       <link href="{{ url_for('static', filename='video-js-8.3.0.css') }}?{{ cache_bust }}" rel="stylesheet" />
       <link href="{{ url_for('static', filename='quality-selector.css') }}?{{ cache_bust }}" rel="stylesheet">
@@ -76,6 +76,14 @@
         {% endif %}
         <div class="chat-boundary">
           <form class="chat-inner" action="" method="POST" id="login">
+            {% if themes %}
+              <div class="theme-prompt">choose a site theme</div>
+              <select name="theme" class="theme" id="logintheme">
+                {% for theme in themes %}
+                  <option value="{{ theme }}"{{' selected' if theme == default else ''}}>{{ theme }}</option>
+                {% endfor %}
+              </select>
+            {% endif %}
             <div class="blank"></div>
             <div class="username-prompt">choose a user name</div>
             <input type="text" class="username" placeholder="User Name"/>
@@ -103,6 +111,14 @@
           </form>
 
           <form class="chat-inner" action="" method="POST" id="admin" style="display: none">
+            {% if themes %}
+              <div class="theme-prompt">choose a site theme</div>
+              <select name="theme" class="theme" id="auththeme">
+                {% for theme in themes %}
+                  <option value="{{ theme }}"{{' selected' if theme == default else ''}}>{{ theme }}</option>
+                {% endfor %}
+              </select>
+            {% endif %}
             <div class="blank"></div>
             <div class="username-prompt">authenticate for admin access</div>
             <input type="password" class="password" id="password"/>
@@ -190,12 +206,20 @@
             var emojis = {{ emojis|tojson|safe }};
             var emotes = {{ emotes|tojson|safe }};
             var icons = {{ icons|tojson|safe }};
+            var themelink = "{{ url_for('static', filename='themes/:theme:/stream.css') }}?{{ cache_bust }}";
             var connected = false;
             var live = false;
             var autoscroll = true;
             var users = [];
             var linkifyOptions = { defaultProtocol: "http", target: "_blank", validate: { email: (x) => false } };
             var twemojiOptions = { base: "{{ url_for('static', filename='twemoji/') }}" }
+
+            // Make sure dropdowns are defaulted, because browsers like to change this and it
+            // becomes inaccurate to the current theme.
+            {% if themes %}
+              $('#auththeme').val({{default|tojson|safe}});
+              $('#logintheme').val({{default|tojson|safe}});
+            {% endif %}
 
             // Support previews of emoji and emotes.
             var options = [];
@@ -515,6 +539,30 @@
                   $("div.chat-collapse").addClass("chat-collapse-hidden");
                 }, 3000);
               }, function() {});
+            {% endif %}
+
+
+            // Allow theme changes if there are multiple themes.
+            {% if themes %}
+              $('#logintheme').on('change', function() {
+                var value = this.value;
+
+                // Update auth theme dropdown as well.
+                $('#auththeme').val(value);
+
+                // Update the theme itself.
+                $('#themecss').attr('href', themelink.replace(':theme:', value));
+              });
+
+              $('#auththeme').on('change', function() {
+                var value = this.value;
+
+                // Update login theme dropdown as well.
+                $('#logintheme').val(value);
+
+                // Update the theme itself.
+                $('#themecss').attr('href', themelink.replace(':theme:', value));
+              });
             {% endif %}
 
             // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.

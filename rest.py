@@ -112,6 +112,14 @@ def stream(streamer: str) -> Response:
     )
     emotes = {f":{result['alias']}:": result['uri'] for result in cursor}
 
+    # Support themes drop-down and default theme.
+    themes = config.get('themes', [])
+    if not themes:
+        themes = ['default']
+    default = themes[0]
+    if len(themes) == 1:
+        themes = []
+
     return make_response(
         render_template(
             'stream.html',
@@ -122,6 +130,8 @@ def stream(streamer: str) -> Response:
             emojis=emojis,
             emotes=emotes,
             icons=['admin', 'moderator'],
+            themes=themes,
+            default=default,
             pictochat_image_width=PICTOCHAT_IMAGE_WIDTH,
             pictochat_image_height=PICTOCHAT_IMAGE_HEIGHT,
         )
