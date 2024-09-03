@@ -10,7 +10,7 @@
                url("{{ url_for('static', filename='Atkinson-Hyperlegible-Regular-102.woff') }}") format("woff");
         }
       </style>
-      <link href="{{ url_for('static', filename='stream.css') }}?{{ cache_bust }}" rel="stylesheet" />
+      <link href="{{ url_for('static', filename='themes/default/stream.css') }}?{{ cache_bust }}" rel="stylesheet" />
       <link href="{{ url_for('static', filename='stream-vertical.css') }}?{{ cache_bust }}" media="screen and (max-aspect-ratio: 4/3)" rel="stylesheet" />
       <link href="{{ url_for('static', filename='video-js-8.3.0.css') }}?{{ cache_bust }}" rel="stylesheet" />
       <link href="{{ url_for('static', filename='quality-selector.css') }}?{{ cache_bust }}" rel="stylesheet">
@@ -157,6 +157,8 @@
             {% for _, uri in emotes.items() %}
               <img src="{{uri}}" />
             {% endfor %}
+            <img class="user-type-icon admin" />';
+            <img class="user-type-icon moderator" />';
           </div>
 
           <script type="text/javascript">
@@ -450,8 +452,8 @@
 
             // Takes any message that supports user type and outputs a user type icon for that user type.
             var iconify = function(msg) {
-                if( icons.hasOwnProperty(msg.type) ) {
-                    return '<img class="user-type-icon" src="' + icons[msg.type] + '" alt="' + msg.type + '" />';
+                if( icons.indexOf(msg.type) >= 0 ) {
+                    return '<img class="user-type-icon ' + msg.type + '" alt="' + msg.type + '" />';
                 }
 
                 return "";

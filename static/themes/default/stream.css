@@ -199,6 +199,14 @@ img.user-type-icon {
   margin-bottom: -2px;
 }
 
+img.user-type-icon.admin {
+  content:url("admin.png");
+}
+
+img.user-type-icon.moderator {
+  content:url("moderator.png");
+}
+
 .user-joined, .user-left, .user-renamed, .command-heading, .user-list, .user-item, .server-message, .chat-heading, .chat-body, .chat-action {
   display: inline;
 }

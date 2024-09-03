@@ -3,6 +3,7 @@
     margin: 0px;
     border: 1px solid gray;
     background: #ffffff;
+    z-index: 200;
 }
 
 .autocomplete-element {

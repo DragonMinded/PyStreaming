@@ -111,10 +111,6 @@ def stream(streamer: str) -> Response:
         "SELECT alias, uri FROM emotes ORDER BY alias",
     )
     emotes = {f":{result['alias']}:": result['uri'] for result in cursor}
-    icons = {
-        'admin': url_for('static', filename='admin.png'),
-        'moderator': url_for('static', filename='moderator.png'),
-    }
 
     return make_response(
         render_template(
@@ -125,7 +121,7 @@ def stream(streamer: str) -> Response:
             playlists=playlists,
             emojis=emojis,
             emotes=emotes,
-            icons=icons,
+            icons=['admin', 'moderator'],
             pictochat_image_width=PICTOCHAT_IMAGE_WIDTH,
             pictochat_image_height=PICTOCHAT_IMAGE_HEIGHT,
         )
