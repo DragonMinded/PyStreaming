@@ -26,7 +26,9 @@ find templates -maxdepth 1 -not -path '*/.*' -type f -exec cp -v '{}' "${INSTALL
 # Copy static over, but not the emoji directory itself, because the destination
 # could have different installed emoji than the debug server.
 mkdir -p "${INSTALLDIR}/static"
+mkdir -p "${INSTALLDIR}/static/themes/"
 find static -maxdepth 1 -not -path '*/.*' -type f -exec cp -v '{}' "${INSTALLDIR}/static/" ';'
+cp -rv static/themes "${INSTALLDIR}/static/"
 
 # Copy the self-hosted twemoji assets over.
 echo "'static/twemoji/' -> '${INSTALLDIR}/static/twemoji/'"
