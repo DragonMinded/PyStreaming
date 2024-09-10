@@ -103,10 +103,10 @@ html, body {
   position: absolute;
   top: 25px;
   width: 75px;
+  cursor: default;
   background: #eeeeee;
   font-size: x-large;
   padding-left: 10px;
-  padding-bottom: 3px;
   border-radius: 5px 0px 0px 5px;
   visibility: hidden;
   opacity: 0;
