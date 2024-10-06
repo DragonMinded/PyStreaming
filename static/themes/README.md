@@ -178,9 +178,11 @@ variable set for use in styling. It looks like the following:
 
 The connected users list is a server-originated message that contains a `command-heading`
 container for the "connected users" message and a `user-list` container that contains
-a bunch of inline-styled `<div>` elements to color user names correctly. Note that this
-will only ever contain the `server` class since it does not come from a user, and it
-will not have the user color variable set either. It looks like the following:
+a bunch of inline-styled `<div>` elements to color user names correctly. The
+`command-heading` container will additionally contain a `connected-users` class to
+distinguish it from other command headings. Note that this will only ever contain
+the `server` class since it does not come from a user, and it will not have the
+user color variable set either. It looks like the following:
 
 ```
 <div.chat-message>

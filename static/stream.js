@@ -419,7 +419,7 @@ socket.on( 'connected', function( msg ) {
         return userify(iconify(user) + escapehtml(user.username), user.color);
     });
     add(
-      '<div class="command-heading">Connected users:</div> ' +
+      '<div class="command-heading connected-users">Connected users:</div> ' +
       '<div class="user-list">' + userlist.join(', ') + '</div>',
       'server',
     );
@@ -446,7 +446,7 @@ socket.on( 'userlist', function( msg ) {
     return userify(iconify(user) + escapehtml(user.username), user.color);
   });
   add(
-    '<div class="command-heading">Connected users:</div> ' +
+    '<div class="command-heading connected-users">Connected users:</div> ' +
     '<div class="user-list">' + userlist.join(', ') + '</div>',
     'server',
   );
@@ -467,7 +467,7 @@ socket.on( 'message received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
+      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + '<span class="sent" /></div> ' +
       '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>',
       msg.username == username ? 'self' : 'other',
       msg.color
@@ -490,7 +490,7 @@ socket.on( 'drawing received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
+      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + '<span class="drew" /></div> ' +
       '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '"></img>', msg.username == username ? 'self' : 'other', msg.color
     );
   }

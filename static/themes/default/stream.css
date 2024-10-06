@@ -235,6 +235,14 @@ img.viewer-count-icon {
   font-weight: bold;
 }
 
+.chat-heading span.sent:after {
+  content: ":";
+}
+
+.chat-heading span.drew:after {
+  content: " drew:";
+}
+
 .server-message {
   font-weight: bold;
   color: #f00;
