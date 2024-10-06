@@ -207,6 +207,14 @@ img.user-type-icon.moderator {
   content:url("moderator.png");
 }
 
+img.viewer-count-icon {
+  content:url("viewers.svg");
+  width: 12px;
+  height: 12px;
+  margin-top: 1px;
+  margin-bottom: -1px;
+}
+
 .user-joined, .user-left, .user-renamed, .command-heading, .user-list, .user-item, .server-message, .chat-heading, .chat-body, .chat-action {
   display: inline;
 }

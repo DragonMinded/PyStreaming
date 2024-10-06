@@ -5,6 +5,11 @@ var live = false;
 var autoscroll = true;
 var users = [];
 
+// If the description contains a link, don't constantly refresh, since it can cause a slight
+// flash when the link is not colored as visited.
+var lastViewerCount = null;
+var lastStreamDescription = null;
+
 // Support previews of emoji and emotes.
 var options = [];
 for (const [key, value] of Object.entries(emojis)) {
@@ -171,8 +176,15 @@ var ping = function() {
 var info = function() {
   $.get("/" + streamer + "/info", {}, function(response) {
     if (response.live) {
-      $( 'div.stream-count' ).text( 'Number of viewers: ' + response.count );
-      $( 'div.stream-description').html( linkifyHtml(escapehtml(response.description), linkifyOptions) );
+      if (response.count != lastViewerCount) {
+        lastViewerCount = response.count;
+        $( 'div.stream-count' ).html( '<img class="viewer-count-icon" alt="number of viewers" /> ' + response.count );
+      }
+
+      if (response.description != lastStreamDescription) {
+        lastStreamDescription = response.description;
+        $( 'div.stream-description').html( linkifyHtml(escapehtml(response.description), linkifyOptions) );
+      }
     } else {
       $( 'div.stream-count' ).text( '' );
       $( 'div.stream-description').text( '' );
