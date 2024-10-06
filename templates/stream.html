@@ -196,597 +196,76 @@
             $( '#chat' ).on( 'submit', function( e ) {
               e.preventDefault();
             } );
-          </script>
-          <script src="{{ url_for('static', filename='pictochat.js') }}?{{ cache_bust }}"></script>
-          <script type="text/javascript">
-            var socket = io.connect(location.protocol  + '//' + document.domain + ':' + location.port);
-            var username = undefined;
-            var streamer = {{ streamer|tojson|safe }};
-            var playlists = {{ playlists|tojson|safe }};
-            var emojis = {{ emojis|tojson|safe }};
-            var emotes = {{ emotes|tojson|safe }};
-            var icons = {{ icons|tojson|safe }};
-            var themelink = "{{ url_for('static', filename='themes/:theme:/stream.css') }}?{{ cache_bust }}";
-            var connected = false;
-            var live = false;
-            var autoscroll = true;
-            var users = [];
-            var linkifyOptions = { defaultProtocol: "http", target: "_blank", validate: { email: (x) => false } };
-            var twemojiOptions = { base: "{{ url_for('static', filename='twemoji/') }}" }
 
+            // Params for plugins.
+            window.linkifyOptions = { defaultProtocol: "http", target: "_blank", validate: { email: (x) => false } };
+            window.twemojiOptions = { base: "{{ url_for('static', filename='twemoji/') }}" }
+            window.pictochatWidth = {{ pictochat_image_width|tojson|safe }};
+            window.pictochatHeight = {{ pictochat_image_height|tojson|safe }}
+
+            // Set up load parameters for thr below scripts.
+            window.streamer = {{ streamer|tojson|safe }};
+            window.playlists = {{ playlists|tojson|safe }};
+            window.emojis = {{ emojis|tojson|safe }};
+            window.emotes = {{ emotes|tojson|safe }};
+            window.icons = {{ icons|tojson|safe }};
+
+            // CSS theme swap-out support.
+            window.themelink = "{{ url_for('static', filename='themes/:theme:/stream.css') }}?{{ cache_bust }}";
+          </script>
+
+          {% if themes %}
+          <script type="text/javascript">
             // Make sure dropdowns are defaulted, because browsers like to change this and it
             // becomes inaccurate to the current theme.
-            {% if themes %}
-              $('#auththeme').val({{default|tojson|safe}});
-              $('#logintheme').val({{default|tojson|safe}});
-            {% endif %}
-
-            // Support previews of emoji and emotes.
-            var options = [];
-            for (const [key, value] of Object.entries(emojis)) {
-              options.push({text: key, type: "emoji", preview: "&nbsp;" + twemoji.parse(value, twemojiOptions)});
-            }
-            for (const [key, value] of Object.entries(emotes)) {
-              options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
-            }
-            // Support tab-completing users as well.
-            var acusers = [];
-            var updater = autocomplete('#message', options.concat(acusers));
-
-            // Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
-            var updateusers = function() {
-              acusers = users.map(function(user) {
-                return {text: "@" + user.username, type: "user", preview: "<span>" + escapehtml(user.username) + "</span>"};
-              });
-              updater(options.concat(acusers));
-            }
-
-            // Whenever an emote is live-added, update the autocomplete typeahead for that emote.
-            var addemote = function(key, uri) {
-              emotes[key] = uri;
-              options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + uri + "\" />"});
-              updater(options.concat(acusers));
-
-              // Also be sure to reload the image.
-              var box = $( 'div.emote-preload' );
-              box.append( '<img src="' + uri + '" />' );
-            }
-
-            // Whenever an emote is live-removed, update the autocomplet typeahead to remove that emote.
-            var delemote = function(key) {
-              delete emotes[key];
-
-              var loc = 0;
-              while( loc < options.length ) {
-                if (options[loc].type == "emote" && options[loc].text == key) {
-                  options.splice(loc, 1);
-                } else {
-                  loc ++;
-                }
-              }
-              updater(options.concat(acusers));
-            }
-
-            // Calculate the integer scroll top of a given component.
-            var scrollTop = function( obj ) {
-              // Sometimes the chrome/firefox calculation of scrollTopMax is off by one
-              return Math.floor(obj.scrollTop) + 1;
-            }
-
-            // Calculate the maximum scroll top of a given component.
-            var scrollTopMax = function( obj ) {
-              return obj.scrollHeight - obj.clientHeight;
-            }
-
-            var ensureScrolled = function() {
-              var box = $( 'div.messages' );
-              if (autoscroll) {
-                box[0].scrollTop = scrollTopMax(box[0]) + 1;
-              } else {
-                $( 'div.new-messages-alert' ).css( 'display', 'inline-block' );
-              }
-            }
-
-            // Add some inner HTML to the chat box.
-            var add = function( inner ) {
-              var box = $( 'div.messages' );
-              box.append( '<div class="chat-message">' + inner + '</div>' );
-              ensureScrolled();
-            }
-
-            // Display an error in the user error box at the bottom, mostly for login.
-            var displayerror = function( error ) {
-              var box = $( 'div.messages' );
-              $( 'div.error' ).text( error );
-              ensureScrolled();
-            }
-
-            // Remove a displayed error in the user error box at the bottom.
-            var clearerror = function() {
-              var box = $( 'div.messages' );
-              $( 'div.error' ).text( "" );
-              ensureScrolled();
-            }
-
-            var entityMap = {
-              '&': '&amp;',
-              '<': '&lt;',
-              '>': '&gt;',
-              '"': '&quot;',
-              "'": '&#39;',
-              '/': '&#x2F;',
-              '`': '&#x60;',
-              '=': '&#x3D;'
-            };
-
-            // Given a user-supplied message, escape any HTML in the message and apply emoji/emote lookups.
-            var escapehtml = function( str ) {
-              str = String(str);
-              str = str.replace(/[&<>"'`=\/]/g, function (s) {
-                return entityMap[s];
-              });
-              Object.keys(emojis).forEach(function(emoji) {
-                  str = str.replaceAll(emoji, emojis[emoji]);
-              });
-              str = twemoji.parse(str, twemojiOptions);
-              Object.keys(emotes).forEach(function(emote) {
-                  str = str.replaceAll(emote, "<img src='" + emotes[emote] + "' class='emote' alt='" + emote + "' />");
-              });
-              return str;
-            }
-
-            // Given an HTML color code, calculates that color's relative luminance
-            // Returned luminance value is on a scale from 0 to 1
-            var colorLuminance = function(color) {
-                const rgb = Object.freeze({
-                  RED: 0,
-                  GREEN: 1,
-                  BLUE: 2
-                });
-
-                const channels = [0, 0, 0];
-                for (let i = 0; i < 3; ++i) {
-                  channels[i] = parseInt(color.slice( (i*2)+1 , ((i+1)*2)+1  ), 16);
-                  channels[i] /= 255;
-
-                  if(channels[i] <= 0.04045){
-                    channels[i] /= 12.92;
-                  } else {
-                    channels[i] = ((channels[i]+0.055)/1.055) ** 2.4;
-                  }
-                }
-
-                let luminance = 0.2126 * channels[rgb.RED] + 0.7152 * channels[rgb.GREEN] + 0.0722 * channels[rgb.BLUE];
-
-                return luminance;
-            }
-
-            // Given an HTML color code for a text color, determines if that text color
-            // deserves the CSS class for dark user text colors, or the CSS class for
-            // light user text colors.
-            var colorLuminanceClass = function(color) {
-                let lumiThreshold = 0.5; // Defines the relative luminance threshold for considering a color light
-                if ( colorLuminance(color) >= lumiThreshold ) {
-                    return "light-user-text-color";
-                } else {
-                    return "dark-user-text-color";
-                }
-            }
-
-            // Keep the socket alive, and allow accurate view counts for the stream.
-            var ping = function() {
-              socket.emit( 'presence', {
-                streamer : streamer,
-              } );
-            }
-
-            // Grab the stream information, possibly reload the stream control if the streamer went live,
-            // display the info such as number of viewers and stream description. This also handles when
-            // a password is applied to the stream that the viewer has not inputted, to kick anyone who
-            // joined before a password was set.
-            var info = function() {
-              $.get("/" + streamer + "/info", {}, function(response) {
-                if (response.live) {
-                  $( 'div.stream-count' ).text( 'Number of viewers: ' + response.count );
-                  $( 'div.stream-description').html( linkifyHtml(escapehtml(response.description), linkifyOptions) );
-                } else {
-                  $( 'div.stream-count' ).text( '' );
-                  $( 'div.stream-description').text( '' );
-                }
-
-                if (response.live != live) {
-                  live = response.live;
-                  videojs.players['my-video'].reset();
-                  videojs.players['my-video'].src(playlists);
-                  videojs.players['my-video'].load();
-                }
-              } ).fail(function(response) {
-                if (response.status == 403) {
-                  // Stream password was turned on, we don't have access.
-                  location.reload();
-                }
-              } );
-            }
-
-            // Walks an already HTML-stripped and emojified message to see if any part of it is a reference
-            // to the current user. If so, wraps that chunk of text in a highlight div, but does not change
-            // capitalization. This allows your own name to be highlighted without rewriting how somebody
-            // wrote the message.
-            var highlight = function(msg) {
-              var actualuser = escapehtml(username).toLowerCase();
-
-              if( msg.length < actualuser.length ) {
-                return msg;
-              }
-
-              var pos = 0;
-              while (pos <= (msg.length - actualuser.length)) {
-                if (pos > 0) {
-                  if (msg.substring(pos - 1, pos) != " ") {
-                    pos ++;
-                    continue;
-                  }
-                }
-                if (pos < (msg.length - actualuser.length)) {
-                  if (msg.substring(pos + actualuser.length, pos + actualuser.length + 1) != " ") {
-                    pos ++;
-                    continue;
-                  }
-                }
-
-                if (msg.substring(pos, pos + actualuser.length).toLowerCase() != actualuser) {
-                  pos++;
-                  continue;
-                }
-
-                before = '<span class="name-highlight user-item">';
-                after = '</span>';
-                msg = (
-                  msg.substring(0, pos) +
-                  before +
-                  msg.substring(pos, pos + actualuser.length) +
-                  after +
-                  msg.substring(pos + actualuser.length, msg.length)
-                );
-
-                pos += actualuser.length + before.length + after.length;
-              }
-
-              return msg;
-            }
-
-            // Takes an alraedy HTML-stripped and emojified message and figures out if it contains only
-            // emoji/emotes. If so, it makes them bigger because bigger emoji is more fun.
-            var embiggen = function(msg) {
-                if( msg.length == 0 ) {
-                    return msg;
-                }
-
-                var domentry = $('<span class="wrapperelement">' + msg + '</span>');
-                var text = domentry.text().trim();
-                if (text.length == 0 && msg.length > 0) {
-                    // Emoji only, embiggen the pictures.
-                    domentry.find('.emoji').addClass('emoji-big').removeClass('emoji');
-                    domentry.find('.emote').addClass('emote-big').removeClass('emote');
-                    return domentry.html();
-                }
-
-                return msg;
-            }
-
-            // Takes any message that supports user type and outputs a user type icon for that user type.
-            var iconify = function(msg) {
-                if( icons.indexOf(msg.type) >= 0 ) {
-                    return '<img class="user-type-icon ' + msg.type + '" alt="' + msg.type + '" />';
-                }
-
-                return "";
-            }
-
-            // Takes an already formatted and iconified username string and wraps it in a user-item div
-            // to ensure that the name doesn't get word-wrapped in the middle. Also allows name colors to
-            // be applied when needed.
-            var userify = function( user, color ) {
-                var usecolor = color || false;
-                if (usecolor) {
-                    return '<div class="user-item ' + colorLuminanceClass(color) + '" style="color: ' + color + '">' + user + '</div>';
-                } else {
-                    return '<div class="user-item">' + user + '</div>';
-                }
-            }
-
-            var setCookie = function(name,value,days) {
-                var expires = "";
-                if (days) {
-                    var date = new Date();
-                    date.setTime(date.getTime() + (days*24*60*60*1000));
-                    expires = "; expires=" + date.toUTCString();
-                }
-                document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-            }
-
-            var getCookie = function(name) {
-              return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop() || ''
-            }
-
-            // Hook autoscrolling to being a the bottom of the chat.
-            $('div.messages').scroll(function() {
-              var box = $( 'div.messages' );
-              autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
-              if (autoscroll) {
-                $( 'div.new-messages-alert' ).css( 'display', 'none' );
-              }
-            });
-
-            // Make sure we move the chat after animating pictochat.
-            $('#pictochat-container').on('transitionend webkitTransitionEnd oTransitionEnd', function () {
-              ensureScrolled();
-            });
-
-            {% if chat != "disabled" %}
-              // Allow collapsing the chat panel.
-              $('div.chat-collapse').on('click', function() {
-                $('div.chat-pane').toggleClass('chat-collapsed');
-                $('div.chat-spacer').toggleClass('chat-collapsed');
-              });
-
-              // Hide the collapse hover after some seconds, because it can be annoying.
-              var hoverTimeout;
-              $("div.chat-pane").hover(function() {
-                clearTimeout(hoverTimeout);
-                $("div.chat-collapse").removeClass("chat-collapse-hidden");
-                hoverTimeout = setTimeout(function() {
-                  $("div.chat-collapse").addClass("chat-collapse-hidden");
-                }, 3000);
-              }, function() {});
-            {% endif %}
-
+            $('#auththeme').val({{ default|tojson|safe }});
+            $('#logintheme').val({{ default|tojson|safe }});
 
             // Allow theme changes if there are multiple themes.
-            {% if themes %}
-              $('#logintheme').on('change', function() {
-                var value = this.value;
+            $('#logintheme').on('change', function() {
+              var value = this.value;
 
-                // Update auth theme dropdown as well.
-                $('#auththeme').val(value);
+              // Update auth theme dropdown as well.
+              $('#auththeme').val(value);
 
-                // Update the theme itself.
-                $('#themecss').attr('href', themelink.replace(':theme:', value));
-              });
-
-              $('#auththeme').on('change', function() {
-                var value = this.value;
-
-                // Update login theme dropdown as well.
-                $('#logintheme').val(value);
-
-                // Update the theme itself.
-                $('#themecss').attr('href', themelink.replace(':theme:', value));
-              });
-            {% endif %}
-
-            // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
-            $(window).resize(function() {
-              var box = $( 'div.messages' );
-              if (autoscroll) {
-                box[0].scrollTop = scrollTopMax(box[0]) + 1;
-              }
+              // Update the theme itself.
+              $('#themecss').attr('href', themelink.replace(':theme:', value));
             });
 
-            // All of our websocket messages from the server are handled below.
-            socket.on( 'connect', function() {
-              clearerror();
-              $( '#login' ).on( 'submit', function( e ) {
-                e.preventDefault();
+            $('#auththeme').on('change', function() {
+              var value = this.value;
 
-                username = $( 'input.username' ).val();
-                color = $( 'select.color' ).val();
-                socket.emit( 'login', {
-                  username : username,
-                  streamer : streamer,
-                  color : color,
-                } );
-                updateColor(color);
-              } );
+              // Update login theme dropdown as well.
+              $('#logintheme').val(value);
 
-              ping();
-              info();
-              setInterval(ping, 5000);
-              setInterval(info, 5000);
-            } );
-
-            socket.on( 'login key required', function( msg ) {
-              username = msg.username;
-
-              clearerror();
-              $( '#login' ).remove();
-              $( '#admin' ).show();
-              $( '#password' ).focus()
-
-              $( '#admin' ).on( 'submit', function( e ) {
-                e.preventDefault();
-
-                let password = $( 'input.password' ).val();
-                socket.emit( 'login', {
-                  streamer : streamer,
-                  username : username,
-                  color : color,
-                  key : password,
-                } );
-              } );
+              // Update the theme itself.
+              $('#themecss').attr('href', themelink.replace(':theme:', value));
             });
-
-            socket.on( 'login success', function( msg ) {
-              username = msg.username;
-
-              clearerror();
-              $( '#login' ).remove();
-              $( '#admin' ).remove();
-              $( '#chat' ).show();
-              $( '#message' ).focus()
-
-              // Send chat message.
-              $( '#chat' ).on( 'submit', function( e ) {
-                e.preventDefault();
-
-                let message = $( 'input.message' ).val();
-                $( 'input.message' ).val( '' );
-
-                socket.emit( 'message', {
-                  message : message,
-                } );
-              } );
-
-              // Send pictochat message.
-              $( '#pictochat-send' ).on( 'click', function( e ) {
-                e.preventDefault();
-                let canvas = $( '#pictochat-canvas' )[0];
-                let src = canvas.toDataURL();
-                canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
-                $("#pictochat-send").prop("disabled", true);
-
-                socket.emit( 'drawing', {
-                  src : src,
-                } );
-              } );
-            });
-
-            socket.on( 'connected', function( msg ) {
-              if( connected ) {
-                add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>' );
-              }
-              if( msg.username == username && !connected ) {
-                var userlist = msg.users.map(function(user) {
-                    return userify(iconify(user) + escapehtml(user.username), user.color);
-                });
-                add(
-                  '<div class="command-heading">Connected users:</div> ' +
-                  '<div class="user-list">' + userlist.join(', ') + '</div>'
-                );
-                connected = true;
-              }
-              users = msg.users;
-              updateusers();
-            })
-
-            socket.on( 'server', function( msg ) {
-              add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>' );
-            })
-
-            socket.on( 'disconnected', function( msg ) {
-              if( connected ) {
-                add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>' );
-              }
-              users = msg.users;
-              updateusers();
-            })
-
-            socket.on( 'userlist', function( msg ) {
-              var userlist = msg.users.map(function(user) {
-                return userify(iconify(user) + escapehtml(user.username), user.color);
-              });
-              add(
-                '<div class="command-heading">Connected users:</div> ' +
-                '<div class="user-list">' + userlist.join(', ') + '</div>'
-              );
-            })
-
-            socket.on( 'rename', function( msg ) {
-              add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>' );
-              if (msg.oldname == username) {
-                  username = msg.newname;
-              }
-              users = msg.users;
-              updateusers();
-            })
-
-            socket.on( 'message received', function( msg ) {
-              if( connected ) {
-                if( msg.username == username ) {
-                  clearerror();
-                }
-                add(
-                  '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
-                  '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>'
-                );
-              }
-            })
-
-            socket.on( 'action received', function( msg ) {
-              if( connected ) {
-                if( msg.username == username ) {
-                  clearerror();
-                }
-                add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>' );
-              }
-            })
-
-            socket.on( 'drawing received', function( msg ) {
-              if( connected ) {
-                if( msg.username == username ) {
-                  clearerror();
-                }
-                add(
-                  '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
-                  '<img class="pictochat-drawing" width="{{pictochat_image_width}}" height="{{pictochat_image_height}}" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
-                );
-              }
-            })
-
-            socket.on( 'return color', function( msg ) {
-              updateColor(msg.color);
-            });
-
-            socket.on( 'change theme', function( msg ) {
-              $('#themecss').attr('href', themelink.replace(':theme:', msg.theme));
-            });
-
-            socket.on( 'add emote', function( msg ) {
-              addemote(msg.key, msg.uri);
-            });
-
-            socket.on( 'remove emote', function( msg ) {
-              delemote(msg.key);
-            });
-
-            socket.on( 'password activated', function( msg ) {
-              if( msg.username.toLowerCase() != username.toLowerCase() ) {
-                // Kick all users so that they must enter the stream password. Don't kick the admin since
-                // its possible to pass the password back to them as they just set it. Also, if we already
-                // have the correct password saved (stream was re-passworded with same password), don't refresh
-                // and instead display a message.
-                $.get("/" + streamer + "/info", {}, function(response) {
-                  add( '<div class="server-message">' + escapehtml("Stream password has beeen set to \"" + getCookie("streampass") + "\"!") + '</div>' );
-                } ).fail(function(response) {
-                  if (response.status == 403) {
-                    location.reload();
-                  }
-                } );
-              }
-            })
-
-            socket.on( 'password set', function( msg ) {
-              // Normally only sent to the admin that set thet password, so lets make sure they
-              // don't get prompted for basically forever.
-              setCookie("streampass", msg.password, 1024);
-            })
-
-            socket.on( 'password deactivated', function( msg ) {
-              if( msg.username.toLowerCase() != username.toLowerCase() ) {
-                // Show the password being deactivated to everyone else but the admin.
-                add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>' );
-              }
-            })
-
-            socket.on( 'error', function( msg ) {
-              displayerror( msg.msg );
-              console.log( msg.msg );
-            } );
-
-            socket.on( 'warning', function( msg ) {
-              console.log( msg.msg );
-            } );
           </script>
+          {% endif %}
+
+          {% if chat != "disabled" %}
+          <script type="text/javascript">
+            // Allow collapsing the chat panel.
+            $('div.chat-collapse').on('click', function() {
+              $('div.chat-pane').toggleClass('chat-collapsed');
+              $('div.chat-spacer').toggleClass('chat-collapsed');
+            });
+            
+            // Hide the collapse hover after some seconds, because it can be annoying.
+            var hoverTimeout;
+            $("div.chat-pane").hover(function() {
+              clearTimeout(hoverTimeout);
+              $("div.chat-collapse").removeClass("chat-collapse-hidden");
+              hoverTimeout = setTimeout(function() {
+                $("div.chat-collapse").addClass("chat-collapse-hidden");
+              }, 3000);
+            }, function() {});
+          </script>
+          {% endif %}
+
+          <script src="{{ url_for('static', filename='pictochat.js') }}?{{ cache_bust }}"></script>
+          <script src="{{ url_for('static', filename='stream.js') }}?{{ cache_bust }}"></script>
         </div>
       </div>
     </div>
