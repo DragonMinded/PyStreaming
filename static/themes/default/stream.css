@@ -223,16 +223,15 @@ img.viewer-count-icon {
   white-space: nowrap;
 }
 
-.user-joined, .user-left, .user-renamed, .command-heading {
-  font-weight: bold;
+.user-joined, .user-left, .user-renamed, .chat-heading, .chat-action {
+  color: var(--user-color);
+}
+
+.user-list, .chat-body, .command-heading {
   color: #000;
 }
 
-.user-list, .chat-body {
-  color: #000;
-}
-
-.chat-heading, .chat-action {
+.chat-heading, .chat-action, .user-joined, .user-left, .user-renamed, .command-heading {
   font-weight: bold;
 }
 
@@ -287,6 +286,7 @@ img.viewer-count-icon {
 
 .pictochat-drawing { 
   margin: 2px 2px 0px 3px;
+  outline-color: var(--user-color);
 }
 
 #pictochat-container {

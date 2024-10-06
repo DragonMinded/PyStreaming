@@ -77,9 +77,14 @@ var ensureScrolled = function() {
 }
 
 // Add some inner HTML to the chat box.
-var add = function( inner ) {
+var add = function( inner, color ) {
   var box = $( 'div.messages' );
-  box.append( '<div class="chat-message">' + inner + '</div>' );
+  if (color != undefined) {
+    box.append( '<div class="chat-message" style="--user-color: ' + color + '">' + inner + '</div>' );
+  } else {
+    box.append( '<div class="chat-message">' + inner + '</div>' );
+  }
+
   ensureScrolled();
 }
 
@@ -407,7 +412,7 @@ socket.on( 'login success', function( msg ) {
 
 socket.on( 'connected', function( msg ) {
   if( connected ) {
-    add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>' );
+    add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>', msg.color );
   }
   if( msg.username == username && !connected ) {
     var userlist = msg.users.map(function(user) {
@@ -429,7 +434,7 @@ socket.on( 'server', function( msg ) {
 
 socket.on( 'disconnected', function( msg ) {
   if( connected ) {
-    add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>' );
+    add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>', msg.color );
   }
   users = msg.users;
   updateusers();
@@ -446,7 +451,7 @@ socket.on( 'userlist', function( msg ) {
 })
 
 socket.on( 'rename', function( msg ) {
-  add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>' );
+  add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>', msg.color );
   if (msg.oldname == username) {
       username = msg.newname;
   }
@@ -460,8 +465,8 @@ socket.on( 'message received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
-      '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>'
+      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
+      '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>', msg.color
     );
   }
 })
@@ -471,7 +476,7 @@ socket.on( 'action received', function( msg ) {
     if( msg.username == username ) {
       clearerror();
     }
-    add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>' );
+    add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>', msg.color );
   }
 })
 
@@ -481,8 +486,8 @@ socket.on( 'drawing received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '" style="color: ' + msg.color + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
-      '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '" style="outline-color:'+ msg.color + ';"></img>'
+      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
+      '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '"></img>', msg.color
     );
   }
 })
