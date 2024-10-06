@@ -77,12 +77,12 @@ var ensureScrolled = function() {
 }
 
 // Add some inner HTML to the chat box.
-var add = function( inner, color ) {
+var add = function( inner, type, color ) {
   var box = $( 'div.messages' );
   if (color != undefined) {
-    box.append( '<div class="chat-message" style="--user-color: ' + color + '">' + inner + '</div>' );
+    box.append( '<div class="chat-message ' + type + '" style="--user-color: ' + color + '">' + inner + '</div>' );
   } else {
-    box.append( '<div class="chat-message">' + inner + '</div>' );
+    box.append( '<div class="chat-message ' + type + '">' + inner + '</div>' );
   }
 
   ensureScrolled();
@@ -412,7 +412,7 @@ socket.on( 'login success', function( msg ) {
 
 socket.on( 'connected', function( msg ) {
   if( connected ) {
-    add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>', msg.color );
+    add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>', msg.username == username ? 'self' : 'other', msg.color );
   }
   if( msg.username == username && !connected ) {
     var userlist = msg.users.map(function(user) {
@@ -420,7 +420,8 @@ socket.on( 'connected', function( msg ) {
     });
     add(
       '<div class="command-heading">Connected users:</div> ' +
-      '<div class="user-list">' + userlist.join(', ') + '</div>'
+      '<div class="user-list">' + userlist.join(', ') + '</div>',
+      'server',
     );
     connected = true;
   }
@@ -429,12 +430,12 @@ socket.on( 'connected', function( msg ) {
 })
 
 socket.on( 'server', function( msg ) {
-  add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>' );
+  add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>', 'server' );
 })
 
 socket.on( 'disconnected', function( msg ) {
   if( connected ) {
-    add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>', msg.color );
+    add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>', msg.username == username ? 'self' : 'other', msg.color );
   }
   users = msg.users;
   updateusers();
@@ -446,12 +447,13 @@ socket.on( 'userlist', function( msg ) {
   });
   add(
     '<div class="command-heading">Connected users:</div> ' +
-    '<div class="user-list">' + userlist.join(', ') + '</div>'
+    '<div class="user-list">' + userlist.join(', ') + '</div>',
+    'server',
   );
 })
 
 socket.on( 'rename', function( msg ) {
-  add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>', msg.color );
+  add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>', msg.oldname == username ? 'self' : 'other', msg.color );
   if (msg.oldname == username) {
       username = msg.newname;
   }
@@ -466,7 +468,9 @@ socket.on( 'message received', function( msg ) {
     }
     add(
       '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ':</div> ' +
-      '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>', msg.color
+      '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>',
+      msg.username == username ? 'self' : 'other',
+      msg.color
     );
   }
 })
@@ -476,7 +480,7 @@ socket.on( 'action received', function( msg ) {
     if( msg.username == username ) {
       clearerror();
     }
-    add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>', msg.color );
+    add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>', msg.username == username ? 'self' : 'other', msg.color );
   }
 })
 
@@ -487,7 +491,7 @@ socket.on( 'drawing received', function( msg ) {
     }
     add(
       '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' drew: </div> ' +
-      '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '"></img>', msg.color
+      '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '"></img>', msg.username == username ? 'self' : 'other', msg.color
     );
   }
 })
@@ -515,7 +519,7 @@ socket.on( 'password activated', function( msg ) {
     // have the correct password saved (stream was re-passworded with same password), don't refresh
     // and instead display a message.
     $.get("/" + streamer + "/info", {}, function(response) {
-      add( '<div class="server-message">' + escapehtml("Stream password has beeen set to \"" + getCookie("streampass") + "\"!") + '</div>' );
+      add( '<div class="server-message">' + escapehtml("Stream password has beeen set to \"" + getCookie("streampass") + "\"!") + '</div>', 'server' );
     } ).fail(function(response) {
       if (response.status == 403) {
         location.reload();
@@ -533,7 +537,7 @@ socket.on( 'password set', function( msg ) {
 socket.on( 'password deactivated', function( msg ) {
   if( msg.username.toLowerCase() != username.toLowerCase() ) {
     // Show the password being deactivated to everyone else but the admin.
-    add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>' );
+    add( '<div class="server-message">' + escapehtml(msg.msg) + '</div>', 'server' );
   }
 })
 
