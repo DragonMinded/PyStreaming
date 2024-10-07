@@ -12,6 +12,21 @@ function autocomplete( selector, items ) {
     var handled = false;
     var displaying = [];
 
+    $.fn.setCursorPosition = function(pos) {
+        this.each(function(index, elem) {
+            if (elem.setSelectionRange) {
+                elem.setSelectionRange(pos, pos);
+            } else if (elem.createTextRange) {
+                var range = elem.createTextRange();
+                range.collapse(true);
+                range.moveEnd('character', pos);
+                range.moveStart('character', pos);
+                range.select();
+            }
+        });
+        return this;
+    };
+
     $(selector).on('keydown', function(event) {
         handled = false;
         if(!displayed) {
@@ -79,6 +94,7 @@ function autocomplete( selector, items ) {
                 // Update text with choice, close menu.
                 const newval = text.slice(0, curstart) + choice + text.slice(curend);
                 $(selector).val(newval);
+                $(selector).setCursorPosition(curstart + choice.length);
                 hide();
 
                 // Don't send a message or move the cursor.
