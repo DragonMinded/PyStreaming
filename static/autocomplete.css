@@ -12,6 +12,7 @@
     margin: 0px;
     display: flex;
     align-items: center;
+    cursor: default;
 }
 
 .autocomplete-additional {
@@ -19,6 +20,7 @@
     white-space: nowrap;
     margin: 0px;
     text-align: center;
+    cursor: default;
 }
 
 .autocomplete-element.selected {

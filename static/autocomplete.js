@@ -10,6 +10,7 @@ function getCursorPosition(element) {
 function autocomplete( selector, items ) {
     var displayed = false;
     var handled = false;
+    var hovering = false;
     var displaying = [];
 
     $.fn.setCursorPosition = function(pos) {
@@ -29,6 +30,8 @@ function autocomplete( selector, items ) {
 
     $(selector).on('keydown', function(event) {
         handled = false;
+        hovering = false;
+
         if(!displayed) {
             return;
         }
@@ -61,47 +64,15 @@ function autocomplete( selector, items ) {
             return false;
         }
 
-        // Figure out if we have anything to display.
-        var word = "";
-        var text = $(selector).val();
-        var curpos = pos;
-        var curstart = 0;
-        var curend = 0;
-        var reWhiteSpace = new RegExp("/\s/");
-
-        while(curpos > 0) {
-            if(text[curpos - 1].trim() === '') {
-                break;
-            }
-            curpos --;
-        }
-        curstart = curpos;
-
-        while(curpos < text.length) {
-            if(text[curpos].trim() === '') {
-                break;
-            }
-
-            word += text[curpos];
-            curpos ++;
-        }
-        curend = curpos;
-
         // Is this a menu selection?
         if(event.keyCode == 13 || event.keyCode == 9) {
             var choice = cursorselection();
-            if (choice) {
-                // Update text with choice, close menu.
-                const newval = text.slice(0, curstart) + choice + text.slice(curend);
-                $(selector).val(newval);
-                $(selector).setCursorPosition(curstart + choice.length);
-                hide();
+            selectOption(choice);
 
-                // Don't send a message or move the cursor.
-                handled = true;
-                event.preventDefault();
-                return false;
-            }
+            // Don't send a message or move the cursor.
+            handled = true;
+            event.preventDefault();
+            return false;
         }
     });
 
@@ -185,7 +156,9 @@ function autocomplete( selector, items ) {
     });
 
     $(selector).on('focusout', function() {
-        hide();
+        if (!hovering) {
+            hide();
+        }
     });
 
     $(window).resize(function() {
@@ -194,8 +167,50 @@ function autocomplete( selector, items ) {
         }
     });
 
+    function selectOption(choice) {
+        const pos = getCursorPosition(selector);
+        if (pos === null) {
+            return;
+        }
+
+        // Figure out if we have anything to display.
+        var word = "";
+        var text = $(selector).val();
+        var curpos = pos;
+        var curstart = 0;
+        var curend = 0;
+        var reWhiteSpace = new RegExp("/\s/");
+
+        while(curpos > 0) {
+            if(text[curpos - 1].trim() === '') {
+                break;
+            }
+            curpos --;
+        }
+        curstart = curpos;
+
+        while(curpos < text.length) {
+            if(text[curpos].trim() === '') {
+                break;
+            }
+
+            word += text[curpos];
+            curpos ++;
+        }
+        curend = curpos;
+
+        if (choice) {
+            // Update text with choice, close menu.
+            const newval = text.slice(0, curstart) + choice + text.slice(curend);
+            $(selector).val(newval);
+            $(selector).setCursorPosition(curstart + choice.length);
+            hide();
+        }
+    }
+
     function hide() {
         displayed = false;
+        hovering = false;
 
         $('div.autocomplete').remove();
     }
@@ -217,15 +232,38 @@ function autocomplete( selector, items ) {
                 // Display nick as just the preview.
                 $( '<div class="autocomplete-element"></div>' )
                     .attr("idx", i)
+                    .attr("id", "autocomplete-element-" + i)
                     .html(item.preview)
                     .appendTo('div.autocomplete');
             } else {
                 // Display emoji/emote as the preview and the text to insert.
                 $( '<div class="autocomplete-element"></div>' )
                     .attr("idx", i)
+                    .attr("id", "autocomplete-element-" + i)
                     .html(item.preview + "&nbsp;" + text)
                     .appendTo('div.autocomplete');
             }
+
+            // Clickable/hoverable selector.
+            $("#autocomplete-element-" + i).click(function() {
+                var newIdx = parseInt($(this).attr("idx"));
+                selectOption(cursorText(newIdx));
+            });
+            $("#autocomplete-element-" + i).hover(function() {
+                var newIdx = parseInt($(this).attr("idx"));
+                var idx = parseInt($('div.autocomplete-element.selected').attr("idx"));
+
+                if (idx != newIdx) {
+                    // Select new element.
+                    var elements = $('div.autocomplete-element');
+                    $(elements[idx]).removeClass('selected');
+                    $(elements[newIdx]).addClass('selected');
+                }
+
+                hovering = true;
+            }, function() {
+                hovering = false;
+            });
         });
 
         if( additional ) {
@@ -284,6 +322,10 @@ function autocomplete( selector, items ) {
 
     function cursorselection() {
         var idx = parseInt($('div.autocomplete-element.selected').attr("idx"));
+        return cursorText(idx);
+    }
+
+    function cursorText(idx) {
         var text = displaying[idx].text;
         if(text.startsWith('@')) {
             text = text.slice(1);
