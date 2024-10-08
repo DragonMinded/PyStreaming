@@ -225,7 +225,7 @@ function autocomplete(state, selector, items) {
 
     function show(items, additional) {
         if ($('div.autocomplete').length != 0) {
-            hide();
+            $('div.autocomplete').remove();
         }
 
         // Broadcast that we're open.

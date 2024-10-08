@@ -213,6 +213,9 @@ function emojisearch(state, button, textbox, items) {
 
         $('div.emojisearch').offset({top: offset.top - (height + 2), left:offset.left});
         $('div.emojisearch').width(width - 2);
+
+        // Make sure search typeahead is focused.
+        $('#emojisearch-text').focus();
     }
 
     function hide() {
