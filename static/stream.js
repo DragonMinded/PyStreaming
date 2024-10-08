@@ -13,28 +13,31 @@ var lastStreamDescription = null;
 // Support previews of emoji and emotes.
 var options = [];
 for (const [key, value] of Object.entries(emojis)) {
-  options.push({text: key, type: "emoji", preview: "&nbsp;" + twemoji.parse(value, twemojiOptions)});
+  options.push({text: key, type: "emoji", preview: twemoji.parse(value, twemojiOptions)});
 }
 for (const [key, value] of Object.entries(emotes)) {
-  options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + value + "\" />"});
+  options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + value + "\" />"});
 }
+var emojisearchUpdate = emojisearch('.emoji-search', '#message', options);
+
 // Support tab-completing users as well.
 var acusers = [];
-var updater = autocomplete('#message', options.concat(acusers));
+var autocompleteUpdate = autocomplete('#message', options.concat(acusers));
 
 // Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
 var updateusers = function() {
   acusers = users.map(function(user) {
     return {text: "@" + user.username, type: "user", preview: "<span>" + escapehtml(user.username) + "</span>"};
   });
-  updater(options.concat(acusers));
+  autocompleteUpdate(options.concat(acusers));
 }
 
 // Whenever an emote is live-added, update the autocomplete typeahead for that emote.
 var addemote = function(key, uri) {
   emotes[key] = uri;
-  options.push({text: key, type: "emote", preview: "&nbsp;<img class=\"emoji-preview\" src=\"" + uri + "\" />"});
-  updater(options.concat(acusers));
+  options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + uri + "\" />"});
+  autocompleteUpdate(options.concat(acusers));
+  emojisearchUpdate(options);
 
   // Also be sure to reload the image.
   var box = $( 'div.emote-preload' );
@@ -53,7 +56,8 @@ var delemote = function(key) {
       loc ++;
     }
   }
-  updater(options.concat(acusers));
+  autocompleteUpdate(options.concat(acusers));
+  emojisearchUpdate(options);
 }
 
 // Calculate the integer scroll top of a given component.

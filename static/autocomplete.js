@@ -13,21 +13,6 @@ function autocomplete( selector, items ) {
     var hovering = false;
     var displaying = [];
 
-    $.fn.setCursorPosition = function(pos) {
-        this.each(function(index, elem) {
-            if (elem.setSelectionRange) {
-                elem.setSelectionRange(pos, pos);
-            } else if (elem.createTextRange) {
-                var range = elem.createTextRange();
-                range.collapse(true);
-                range.moveEnd('character', pos);
-                range.moveStart('character', pos);
-                range.select();
-            }
-        });
-        return this;
-    };
-
     $(selector).on('keydown', function(event) {
         handled = false;
         hovering = false;
@@ -233,14 +218,14 @@ function autocomplete( selector, items ) {
                 $( '<div class="autocomplete-element"></div>' )
                     .attr("idx", i)
                     .attr("id", "autocomplete-element-" + i)
-                    .html(item.preview)
+                    .html("&nbsp;" + item.preview)
                     .appendTo('div.autocomplete');
             } else {
                 // Display emoji/emote as the preview and the text to insert.
                 $( '<div class="autocomplete-element"></div>' )
                     .attr("idx", i)
                     .attr("id", "autocomplete-element-" + i)
-                    .html(item.preview + "&nbsp;" + text)
+                    .html("&nbsp;" + item.preview + "&nbsp;" + text)
                     .appendTo('div.autocomplete');
             }
 

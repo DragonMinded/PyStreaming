@@ -15,6 +15,7 @@
       <link href="{{ url_for('static', filename='video-js-8.3.0.css') }}?{{ cache_bust }}" rel="stylesheet" />
       <link href="{{ url_for('static', filename='quality-selector.css') }}?{{ cache_bust }}" rel="stylesheet">
       <link href="{{ url_for('static', filename='autocomplete.css') }}?{{ cache_bust }}" rel="stylesheet">
+      <link href="{{ url_for('static', filename='emojisearch.css') }}?{{ cache_bust }}" rel="stylesheet">
       <script src="{{ url_for('static', filename='jquery-3.5.1.min.js') }}"></script>
       <script src="{{ url_for('static', filename='linkify.min.js')}}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='linkify-html.min.js')}}?{{ cache_bust }}"></script>
@@ -30,7 +31,10 @@
         )
       </script>
       <script src="{{ url_for('static', filename='socket.io-3.0.1.min.js') }}?{{ cache_bust }}"></script>
+      <script src="{{ url_for('static', filename='extensions.js') }}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='autocomplete.js') }}?{{ cache_bust }}"></script>
+      <script src="{{ url_for('static', filename='emojicategories.js') }}?{{ cache_bust }}"></script>
+      <script src="{{ url_for('static', filename='emojisearch.js') }}?{{ cache_bust }}"></script>
       <script src="{{ url_for('static', filename='twemoji-14.0.2.min.js') }}?{{ cache_bust }}" crossorigin="anonymous"></script>
   </head>
 
@@ -131,6 +135,7 @@
             <div class="message-input">
               <div class="new-messages-alert">new messages</div>
               <input type="text" class="message" id="message" autocomplete="off" placeholder="Type a message..."/>
+              <div class="emoji-search"></div>
             </div>
             <div class="buttons-container">
               <button id="sendbutton" value="Send">Send</button>
@@ -212,6 +217,9 @@
 
             // CSS theme swap-out support.
             window.themelink = "{{ url_for('static', filename='themes/:theme:/stream.css') }}?{{ cache_bust }}";
+
+            // Make sure emoji search is themed the same as everything else.
+            $(".emoji-search").html(twemoji.parse(String.fromCodePoint(0x1F600), twemojiOptions));
           </script>
 
           {% if themes %}

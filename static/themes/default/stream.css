@@ -150,6 +150,21 @@ html, body {
   width: 100%;
 }
 
+input.message {
+  padding-right: 20px;
+}
+
+.emoji-search {
+  position: fixed;
+  right: 9px;
+  padding-top: 3px;
+  filter: grayscale(100%);
+}
+
+.emoji-search:hover {
+  filter: none;
+}
+
 .new-messages-alert {
   display: none;
   position: absolute;

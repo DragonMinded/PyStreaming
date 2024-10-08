@@ -1,0 +1,182 @@
+function getCursorStart(element) {
+    var el = $(element).get(0);
+    if ('selectionStart' in el) {
+        return el.selectionStart;
+    }
+
+    return null;
+}
+
+function getCursorEnd(element) {
+    var el = $(element).get(0);
+    if ('selectionEnd' in el) {
+        return el.selectionStart;
+    }
+
+    return null;
+}
+
+function emojisearch( button, textbox, items ) {
+    var displayed = false;
+
+    // Create our picker, hide it.
+    $('<div class="emojisearch"></div>')
+        .attr("style", "display:none;")
+        .appendTo('body');
+    $('<div class="emojisearch-container"></div>').appendTo('div.emojisearch');
+    $('<div class="emojisearch-typeahead"></div>')
+        .html('<input type="text" id="emojisearch-text" placeholder="search" />')
+        .appendTo('div.emojisearch-container');
+    $('<div class="emojisearch-categories"></div>')
+        .appendTo('div.emojisearch-container');
+    $('<div class="emojisearch-content"></div>')
+        .appendTo('div.emojisearch-container');
+
+    // Filter out categories.
+    var categories = {};
+    Object.keys(window.emojicategories).forEach(function(category) {
+        categories[category] = [];
+
+        Object.keys(window.emojicategories[category]).forEach(function(subcategory) {
+            window.emojicategories[category][subcategory].forEach(function(emoji, i) {
+                categories[category].push(":" + emoji.toLowerCase() + ":");
+            });
+        });
+    });
+
+    // Add custom emoji if they exist.
+    items.forEach(function(item, i) {
+        if (item.type != "emote") {
+            return;
+        }
+
+        if (!categories.hasOwnProperty("Custom")) {
+            categories["Custom"] = []
+        }
+
+        categories["Custom"].push(item.text.toLowerCase());
+    });
+
+    // Find icons for categories.
+    var catkeys = {};
+    Object.keys(categories).forEach(function(category) {
+        catkeys[categories[category][0]] = "";
+    });
+
+    // Make a mapping of the emojis and emotes.
+    var emojimapping = {}
+    items.forEach(function(item, i) {
+        var text = item.text.toLowerCase();
+        if (catkeys.hasOwnProperty(text)) {
+            catkeys[text] = item.preview;
+        }
+        emojimapping[text] = item;
+    });
+
+    // Actually render the categories.
+    Object.keys(categories).forEach(function(category, i) {
+        var first = categories[category][0];
+        var preview = catkeys[first];
+
+        $('<div class="emojisearch-category"></div>')
+            .attr("category", category)
+            .html(preview)
+            .appendTo('div.emojisearch-categories');
+
+        categories[category].forEach(function(item, i) {
+            if (emojimapping.hasOwnProperty(item)) {
+                $('<div class="emojisearch-element"></div>')
+                    .attr("text", item)
+                    .attr("category", category)
+                    .html(emojimapping[item].preview)
+                    .appendTo('div.emojisearch-content');
+            }
+        });
+    });
+
+    // Set up category selection.
+    $("div.emojisearch-category").click(function() {
+        var category = $(this).attr("category");
+
+        $("div.emojisearch-category").each(function(i, elem) {
+            var elemCat = $(elem).attr("category");
+            $(elem).removeClass("selected");
+            if (elemCat == category) {
+                $(elem).addClass("selected");
+            }
+        });
+
+        $("div.emojisearch-element").each(function(i, elem) {
+            var elemCat = $(elem).attr("category");
+            if (elemCat == category) {
+                $(elem).show();
+            } else {
+                $(elem).hide();
+            }
+        });
+    });
+
+    // Select first emoji category.
+    $("div.emojisearch-category")[0].click();
+
+    // Handle selecting an emoji.
+    $(".emojisearch-element").click(function() {
+        var emoji = $(this).attr("text");
+        var textcontrol = $(textbox);
+
+        var start = getCursorStart(textcontrol);
+        var end = getCursorEnd(textcontrol);
+        if (end === null) {
+            end = start;
+        }
+
+        if (start !== null && end !== null) {
+            var val = textcontrol.val();
+
+            const newval = val.slice(0, start) + emoji + val.slice(end);
+            textcontrol.val(newval);
+            textcontrol.setCursorPosition(start + emoji.length);
+        }
+
+        hide();
+    });
+
+    $(button).click(function () {
+        if (displayed) {
+            hide();
+        } else {
+            show();
+        }
+    });
+
+    function show() {
+        // Construct element
+        displayed = true;
+        $('div.emojisearch').show();
+
+        // Position it!
+        const offset = $(textbox).offset();
+        const width = $(textbox).outerWidth();
+        const height = $('div.emojisearch').height();
+
+        $('div.emojisearch').offset({top: offset.top - (height + 2), left:offset.left});
+        $('div.emojisearch').width(width - 2);
+    }
+
+    function hide() {
+        displayed = false;
+        $('div.emojisearch').hide();
+    }
+
+    $(window).resize(function() {
+        if (displayed) {
+            show();
+        }
+    });
+
+    function update(newitems) {
+        items = newitems;
+    }
+
+    return update;
+}
