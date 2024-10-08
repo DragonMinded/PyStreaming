@@ -118,7 +118,7 @@ function autocomplete( selector, items ) {
                 }
 
                 // Now, partial match.
-                var wordBit = item.text.substring(1, item.text.length - 1);
+                var wordBit = item.text.substring(1, item.text.length - 1).toLowerCase();
                 return wordBit.includes(noColonPrefix);
             }) : [];
 

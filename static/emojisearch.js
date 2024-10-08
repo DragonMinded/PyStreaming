@@ -86,7 +86,7 @@ function emojisearch( button, textbox, items ) {
         categories[category].forEach(function(item, i) {
             if (emojimapping.hasOwnProperty(item)) {
                 $('<div class="emojisearch-element"></div>')
-                    .attr("text", item)
+                    .attr("text", emojimapping[item].text)
                     .attr("category", category)
                     .html(emojimapping[item].preview)
                     .appendTo('div.emojisearch-content');
