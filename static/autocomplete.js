@@ -100,7 +100,7 @@ function autocomplete( selector, items ) {
         curend = curpos;
 
         // Show if we are @ing somebody, or if we have at least 2 characters matching an emote.
-        if((word.startsWith(":") && word.length > 2) || word.startsWith('@'))
+        if((word.startsWith(":") && !word.endsWith(":") && word.length > 2) || word.startsWith('@'))
         {
             word = word.toLowerCase();
 

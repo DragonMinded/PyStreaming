@@ -10,7 +10,7 @@ function getCursorStart(element) {
 function getCursorEnd(element) {
     var el = $(element).get(0);
     if ('selectionEnd' in el) {
-        return el.selectionStart;
+        return el.selectionEnd;
     }
 
     return null;
