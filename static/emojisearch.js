@@ -187,6 +187,7 @@ function emojisearch(state, button, textbox, items) {
         }
 
         hide();
+        textcontrol.focus();
     });
 
     $(button).click(function () {
