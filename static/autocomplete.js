@@ -12,6 +12,7 @@ function autocomplete(state, selector, items) {
     var handled = false;
     var hovering = false;
     var displaying = [];
+    var displayingAdditional = false;
 
     // Register a callback for controlling global state.
     state.registerStateChangeCallback(function(state) {
@@ -165,7 +166,7 @@ function autocomplete(state, selector, items) {
 
     $(window).resize(function() {
         if (displayed) {
-            show();
+            show(displaying, displayingAdditional);
         }
     });
 
@@ -233,6 +234,7 @@ function autocomplete(state, selector, items) {
         // Construct element
         displayed = true;
         displaying = items;
+        displayingAdditional = additional;
 
         $('<div class="autocomplete"></div>').appendTo('body');
 
