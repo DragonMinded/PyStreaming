@@ -114,6 +114,9 @@ function emojisearch( button, textbox, items ) {
                 $(elem).hide();
             }
         });
+
+        // Make sure to scroll to the top of the visible list.
+        $("div.emojisearch-content").scrollTop(0);
     });
 
     // Select first emoji category.
