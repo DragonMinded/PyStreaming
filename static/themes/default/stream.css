@@ -161,7 +161,7 @@ input.message {
   filter: grayscale(100%);
 }
 
-.emoji-search:hover {
+.emoji-search:hover, .emoji-search.opened {
   filter: none;
 }
 

@@ -206,7 +206,7 @@ function emojisearch(state, button, textbox, items) {
         // Broadcast that we're open.
         state.setState("search");
 
-        // Position it!
+        // Position ourselves!
         const offset = $(textbox).offset();
         const width = $(textbox).outerWidth();
         const height = $('div.emojisearch').height();
@@ -216,6 +216,11 @@ function emojisearch(state, button, textbox, items) {
 
         // Make sure search typeahead is focused.
         $('#emojisearch-text').focus();
+
+        // Make sure the emoji button stays highlighted.
+        if (!$(button).hasClass("opened")) {
+            $(button).addClass("opened");
+        }
     }
 
     function hide() {
@@ -226,6 +231,7 @@ function emojisearch(state, button, textbox, items) {
             state.setState("empty");
         }
 
+        // Hide our top level.
         $('div.emojisearch').hide();
 
         // Also make sure search is cleared.
@@ -240,6 +246,11 @@ function emojisearch(state, button, textbox, items) {
                     $(elem).click();
                 }
             });
+        }
+
+        // Also make sure the emoji button isn't highlighted anymore.
+        if ($(button).hasClass("opened")) {
+            $(button).removeClass("opened");
         }
     }
 
