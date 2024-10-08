@@ -621,16 +621,6 @@ window.emojicategories = {
             "footprints"
         ]
     },
-    "Component": {
-        "skin-tone": [
-            "skin-tone-2",
-            "skin-tone-3",
-            "skin-tone-4",
-            "skin-tone-5",
-            "skin-tone-6"
-        ],
-        "hair-style": []
-    },
     "Animals & Nature": {
         "animal-mammal": [
             "monkey_face",

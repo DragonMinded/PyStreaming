@@ -18,6 +18,7 @@ function getCursorEnd(element) {
 
 function emojisearch( button, textbox, items ) {
     var displayed = false;
+    var lastCategory = "";
 
     // Create our picker, hide it.
     $('<div class="emojisearch"></div>')
@@ -96,7 +97,15 @@ function emojisearch( button, textbox, items ) {
 
     // Set up category selection.
     $("div.emojisearch-category").click(function() {
+        // Don't allow selection when search is happening.
+        var searchInput = $("#emojisearch-text").val();
+
+        if (searchInput != "") {
+            return;
+        }
+
         var category = $(this).attr("category");
+        lastCategory = category;
 
         $("div.emojisearch-category").each(function(i, elem) {
             var elemCat = $(elem).attr("category");
@@ -121,6 +130,38 @@ function emojisearch( button, textbox, items ) {
 
     // Select first emoji category.
     $("div.emojisearch-category")[0].click();
+
+    // Handle searching for an emoji.
+    $("#emojisearch-text").on('input', function() {
+        var searchInput = $(this).val().toLowerCase();
+
+        if (searchInput == "") {
+            // Erased search, put us back to normal.
+            $("div.emojisearch-category").each(function(i, elem) {
+                var elemCat = $(elem).attr("category");
+                if (elemCat == lastCategory) {
+                    $(elem).click();
+                }
+            });
+            return;
+        }
+
+        // Make sure all categories are highlighted.
+        $("div.emojisearch-category").each(function(i, elem) {
+            if (!$(elem).hasClass("selected")) {
+                $(elem).addClass("selected");
+            }
+        });
+
+        $("div.emojisearch-element").each(function(i, elem) {
+            var elemText = $(elem).attr("text").toLowerCase();
+            if (elemText.includes(searchInput)) {
+                $(elem).show();
+            } else {
+                $(elem).hide();
+            }
+        });
+    });
 
     // Handle selecting an emoji.
     $(".emojisearch-element").click(function() {
@@ -169,6 +210,20 @@ function emojisearch( button, textbox, items ) {
     function hide() {
         displayed = false;
         $('div.emojisearch').hide();
+
+        // Also make sure search is cleared.
+        var searchVal = $("#emojisearch-text").val();
+        if (searchVal != "") {
+            $("#emojisearch-text").val("");
+
+            // Erased search, put us back to normal.
+            $("div.emojisearch-category").each(function(i, elem) {
+                var elemCat = $(elem).attr("category");
+                if (elemCat == lastCategory) {
+                    $(elem).click();
+                }
+            });
+        }
     }
 
     $(window).resize(function() {

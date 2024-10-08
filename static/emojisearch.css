@@ -51,6 +51,8 @@
     height: 191px;
     overflow-y: auto;
     flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: flex-start;
 }
 
 .emojisearch-element.selected {
