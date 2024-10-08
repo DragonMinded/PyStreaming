@@ -7,17 +7,30 @@ function getCursorPosition(element) {
     return null;
 }
 
-function autocomplete( selector, items ) {
+function autocomplete(state, selector, items) {
     var displayed = false;
     var handled = false;
     var hovering = false;
     var displaying = [];
+
+    // Register a callback for controlling global state.
+    state.registerStateChangeCallback(function(state) {
+        if (state == "search") {
+            if (displayed) {
+                hide();
+            }
+        }
+    });
 
     $(selector).on('keydown', function(event) {
         handled = false;
         hovering = false;
 
         if(!displayed) {
+            return;
+        }
+
+        if(state.current == "search") {
             return;
         }
 
@@ -64,6 +77,10 @@ function autocomplete( selector, items ) {
     $(selector).on('keyup focus click', function(event) {
         if (handled) {
             handled = false;
+            return;
+        }
+
+        if(state.current == "search") {
             return;
         }
 
@@ -197,6 +214,11 @@ function autocomplete( selector, items ) {
         displayed = false;
         hovering = false;
 
+        // Broadcast that we're closed.
+        if(state.current == "typeahead") {
+            state.setState("empty");
+        }
+
         $('div.autocomplete').remove();
     }
 
@@ -204,6 +226,9 @@ function autocomplete( selector, items ) {
         if ($('div.autocomplete').length != 0) {
             hide();
         }
+
+        // Broadcast that we're open.
+        state.setState("typeahead");
 
         // Construct element
         displayed = true;

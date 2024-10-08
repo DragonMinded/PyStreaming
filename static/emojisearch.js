@@ -16,9 +16,13 @@ function getCursorEnd(element) {
     return null;
 }
 
-function emojisearch( button, textbox, items ) {
+function emojisearch(state, button, textbox, items) {
     var displayed = false;
     var lastCategory = "";
+
+    // Register a callback for controlling global state.
+    state.registerStateChangeCallback(function(state) {
+    });
 
     // Create our picker, hide it.
     $('<div class="emojisearch"></div>')
@@ -198,6 +202,9 @@ function emojisearch( button, textbox, items ) {
         displayed = true;
         $('div.emojisearch').show();
 
+        // Broadcast that we're open.
+        state.setState("search");
+
         // Position it!
         const offset = $(textbox).offset();
         const width = $(textbox).outerWidth();
@@ -209,6 +216,12 @@ function emojisearch( button, textbox, items ) {
 
     function hide() {
         displayed = false;
+
+        // Broadcast that we're closed.
+        if(state.current == "search") {
+            state.setState("empty");
+        }
+
         $('div.emojisearch').hide();
 
         // Also make sure search is cleared.

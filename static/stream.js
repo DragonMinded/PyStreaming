@@ -10,6 +10,9 @@ var users = [];
 var lastViewerCount = null;
 var lastStreamDescription = null;
 
+// Shared state between input controls.
+var inputState = new InputState();
+
 // Support previews of emoji and emotes.
 var options = [];
 for (const [key, value] of Object.entries(emojis)) {
@@ -18,11 +21,11 @@ for (const [key, value] of Object.entries(emojis)) {
 for (const [key, value] of Object.entries(emotes)) {
   options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + value + "\" />"});
 }
-var emojisearchUpdate = emojisearch('.emoji-search', '#message', options);
+var emojisearchUpdate = emojisearch(inputState, '.emoji-search', '#message', options);
 
 // Support tab-completing users as well.
 var acusers = [];
-var autocompleteUpdate = autocomplete('#message', options.concat(acusers));
+var autocompleteUpdate = autocomplete(inputState, '#message', options.concat(acusers));
 
 // Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
 var updateusers = function() {
