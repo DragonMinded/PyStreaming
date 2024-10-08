@@ -20,10 +20,6 @@ function emojisearch(state, button, textbox, items) {
     var displayed = false;
     var lastCategory = "";
 
-    // Register a callback for controlling global state.
-    state.registerStateChangeCallback(function(state) {
-    });
-
     // Create our picker, hide it.
     $('<div class="emojisearch"></div>')
         .attr("style", "display:none;")
@@ -88,7 +84,13 @@ function emojisearch(state, button, textbox, items) {
             .html(preview)
             .appendTo('div.emojisearch-categories');
 
-        categories[category].forEach(function(item, i) {
+        var catList = categories[category];
+        if (category == "Custom") {
+            // Make sure we have sorted emoji.
+            catList = catList.toSorted((a, b) => emojimapping[a].text.localeCompare(emojimapping[b].text));
+        }
+
+        catList.forEach(function(item, i) {
             if (emojimapping.hasOwnProperty(item)) {
                 $('<div class="emojisearch-element"></div>')
                     .attr("text", emojimapping[item].text)

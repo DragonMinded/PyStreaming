@@ -14,6 +14,9 @@ function autocomplete(state, selector, items) {
     var displaying = [];
     var displayingAdditional = false;
 
+    // Sort our items.
+    items = items.toSorted((a, b) => a.text.localeCompare(b.text));
+
     // Register a callback for controlling global state.
     state.registerStateChangeCallback(function(state) {
         if (state == "search") {
@@ -346,7 +349,7 @@ function autocomplete(state, selector, items) {
     }
 
     function update(newitems) {
-        items = newitems;
+        items = newitems.toSorted((a, b) => a.text.localeCompare(b.text));
     }
 
     return update;
