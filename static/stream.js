@@ -13,54 +13,60 @@ var lastStreamDescription = null;
 // Shared state between input controls.
 var inputState = new InputState();
 
-// Support previews of emoji and emotes.
-var options = [];
-for (const [key, value] of Object.entries(emojis)) {
-  options.push({text: key, type: "emoji", preview: twemoji.parse(value, twemojiOptions)});
-}
-for (const [key, value] of Object.entries(emotes)) {
-  options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + value + "\" />"});
-}
-var emojisearchUpdate = emojisearch(inputState, '.emoji-search', '#message', options);
-
-// Support tab-completing users as well.
-var acusers = [];
-var autocompleteUpdate = autocomplete(inputState, '#message', options.concat(acusers));
-
-// Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
-var updateusers = function() {
-  acusers = users.map(function(user) {
-    return {text: "@" + user.username, type: "user", preview: "<span>" + escapehtml(user.username) + "</span>"};
-  });
-  autocompleteUpdate(options.concat(acusers));
-}
-
-// Whenever an emote is live-added, update the autocomplete typeahead for that emote.
-var addemote = function(key, uri) {
-  emotes[key] = uri;
-  options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + uri + "\" />"});
-  autocompleteUpdate(options.concat(acusers));
-  emojisearchUpdate(options);
-
-  // Also be sure to reload the image.
-  var box = $( 'div.emote-preload' );
-  box.append( '<img src="' + uri + '" />' );
-}
-
-// Whenever an emote is live-removed, update the autocomplet typeahead to remove that emote.
-var delemote = function(key) {
-  delete emotes[key];
-
-  var loc = 0;
-  while( loc < options.length ) {
-    if (options[loc].type == "emote" && options[loc].text == key) {
-      options.splice(loc, 1);
-    } else {
-      loc ++;
+if (chatdefault != "disabled") {
+    // Support previews of emoji and emotes.
+    var options = [];
+    for (const [key, value] of Object.entries(emojis)) {
+      options.push({text: key, type: "emoji", preview: twemoji.parse(value, twemojiOptions)});
     }
-  }
-  autocompleteUpdate(options.concat(acusers));
-  emojisearchUpdate(options);
+    for (const [key, value] of Object.entries(emotes)) {
+      options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + value + "\" />"});
+    }
+    var emojisearchUpdate = emojisearch(inputState, '.emoji-search', '#message', options);
+
+    // Support tab-completing users as well.
+    var acusers = [];
+    var autocompleteUpdate = autocomplete(inputState, '#message', options.concat(acusers));
+
+    // Whenever user changes occur (joins/parts/renames), update the autocomplete typeahead for those names.
+    var updateusers = function() {
+      acusers = users.map(function(user) {
+        return {text: "@" + user.username, type: "user", preview: "<span>" + escapehtml(user.username) + "</span>"};
+      });
+      autocompleteUpdate(options.concat(acusers));
+    }
+
+    // Whenever an emote is live-added, update the autocomplete typeahead for that emote.
+    var addemote = function(key, uri) {
+      emotes[key] = uri;
+      options.push({text: key, type: "emote", preview: "<img class=\"emoji-preview\" src=\"" + uri + "\" />"});
+      autocompleteUpdate(options.concat(acusers));
+      emojisearchUpdate(options);
+
+      // Also be sure to reload the image.
+      var box = $( 'div.emote-preload' );
+      box.append( '<img src="' + uri + '" />' );
+    }
+
+    // Whenever an emote is live-removed, update the autocomplet typeahead to remove that emote.
+    var delemote = function(key) {
+      delete emotes[key];
+
+      var loc = 0;
+      while( loc < options.length ) {
+        if (options[loc].type == "emote" && options[loc].text == key) {
+          options.splice(loc, 1);
+        } else {
+          loc ++;
+        }
+      }
+      autocompleteUpdate(options.concat(acusers));
+      emojisearchUpdate(options);
+    }
+} else {
+    // Chat is disabled, don't waste time with typeaheads and such.
+    var addemote = function(key, uri) {}
+    var delemote = function(key) {}
 }
 
 // Calculate the integer scroll top of a given component.
