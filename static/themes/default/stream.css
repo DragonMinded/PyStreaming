@@ -155,8 +155,8 @@ input.message {
 }
 
 .emoji-search {
-  position: fixed;
-  right: 9px;
+  position: absolute;
+  right: 4px;
   padding-top: 3px;
   filter: grayscale(100%);
 }
