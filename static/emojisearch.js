@@ -81,15 +81,19 @@ function emojisearch(state, button, textbox, items) {
         $("div.emojisearch-category").remove();
         $("div.emojisearch-element").remove();
 
+        var emojisearchCategories = $('div.emojisearch-categories');
+        var emojisearchContent = $('div.emojisearch-content');
+
         // Actually render the categories.
         Object.keys(categories).forEach(function(category, i) {
             var first = categories[category][0];
             var preview = catkeys[first];
 
-            $('<div class="emojisearch-category"></div>')
-                .attr("category", category)
-                .html(preview)
-                .appendTo('div.emojisearch-categories');
+            emojisearchCategories.append(
+                $('<div class="emojisearch-category"></div>')
+                    .attr("category", category)
+                    .html(preview)
+            );
 
             var catList = categories[category];
             if (category == "Custom") {
@@ -99,11 +103,12 @@ function emojisearch(state, button, textbox, items) {
 
             catList.forEach(function(entry, i) {
                 if (emojimapping.hasOwnProperty(entry)) {
-                    $('<div class="emojisearch-element"></div>')
-                        .attr("text", emojimapping[entry].text)
-                        .attr("category", category)
-                        .html(emojimapping[entry].preview)
-                        .appendTo('div.emojisearch-content');
+                    emojisearchContent.append(
+                        $('<div class="emojisearch-element"></div>')
+                            .attr("text", emojimapping[entry].text)
+                            .attr("category", category)
+                            .html(emojimapping[entry].preview)
+                    );
                 }
             });
         });
