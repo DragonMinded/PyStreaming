@@ -44,7 +44,7 @@ from helpers import (
 
 
 # Allow cache-busting of entire frontend for stream page and chat updates.
-FRONTEND_CACHE_BUST: str = "site.1.1.2"
+FRONTEND_CACHE_BUST: str = "site.1.2.0"
 
 
 @app.context_processor
