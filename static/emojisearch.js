@@ -212,6 +212,14 @@ function emojisearch(state, button, textbox, items) {
         }
     });
 
+    $("#emojisearch-text").on('keydown', function(event) {
+        // Are we closing the search?
+        if(event.keyCode == 27) {
+            hide();
+            $(textbox).focus();
+        }
+    });
+
     function show() {
         // Construct element
         displayed = true;
