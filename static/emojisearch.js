@@ -20,86 +20,98 @@ function emojisearch(state, button, textbox, items) {
     var displayed = false;
     var lastCategory = "";
 
-    // Create our picker, hide it.
-    $('<div class="emojisearch"></div>')
-        .attr("style", "display:none;")
-        .appendTo('body');
-    $('<div class="emojisearch-container"></div>').appendTo('div.emojisearch');
-    $('<div class="emojisearch-typeahead"></div>')
-        .html('<input type="text" id="emojisearch-text" placeholder="search" />')
-        .appendTo('div.emojisearch-container');
-    $('<div class="emojisearch-categories"></div>')
-        .appendTo('div.emojisearch-container');
-    $('<div class="emojisearch-content"></div>')
-        .appendTo('div.emojisearch-container');
+    function create() {
+        // Create our picker, hide it.
+        $('<div class="emojisearch"></div>')
+            .attr("style", "display:none;")
+            .appendTo('body');
+        $('<div class="emojisearch-container"></div>').appendTo('div.emojisearch');
+        $('<div class="emojisearch-typeahead"></div>')
+            .html('<input type="text" id="emojisearch-text" placeholder="search" />')
+            .appendTo('div.emojisearch-container');
+        $('<div class="emojisearch-categories"></div>')
+            .appendTo('div.emojisearch-container');
+        $('<div class="emojisearch-content"></div>')
+            .appendTo('div.emojisearch-container');
+    }
 
-    // Filter out categories.
-    var categories = {};
-    Object.keys(window.emojicategories).forEach(function(category) {
-        categories[category] = [];
+    function populate(entries) {
+        // Filter out categories.
+        var categories = {};
+        Object.keys(window.emojicategories).forEach(function(category) {
+            categories[category] = [];
 
-        Object.keys(window.emojicategories[category]).forEach(function(subcategory) {
-            window.emojicategories[category][subcategory].forEach(function(emoji, i) {
-                categories[category].push(":" + emoji.toLowerCase() + ":");
+            Object.keys(window.emojicategories[category]).forEach(function(subcategory) {
+                window.emojicategories[category][subcategory].forEach(function(emoji, i) {
+                    categories[category].push(":" + emoji.toLowerCase() + ":");
+                });
             });
         });
-    });
 
-    // Add custom emoji if they exist.
-    items.forEach(function(item, i) {
-        if (item.type != "emote") {
-            return;
-        }
-
-        if (!categories.hasOwnProperty("Custom")) {
-            categories["Custom"] = []
-        }
-
-        categories["Custom"].push(item.text.toLowerCase());
-    });
-
-    // Find icons for categories.
-    var catkeys = {};
-    Object.keys(categories).forEach(function(category) {
-        catkeys[categories[category][0]] = "";
-    });
-
-    // Make a mapping of the emojis and emotes.
-    var emojimapping = {}
-    items.forEach(function(item, i) {
-        var text = item.text.toLowerCase();
-        if (catkeys.hasOwnProperty(text)) {
-            catkeys[text] = item.preview;
-        }
-        emojimapping[text] = item;
-    });
-
-    // Actually render the categories.
-    Object.keys(categories).forEach(function(category, i) {
-        var first = categories[category][0];
-        var preview = catkeys[first];
-
-        $('<div class="emojisearch-category"></div>')
-            .attr("category", category)
-            .html(preview)
-            .appendTo('div.emojisearch-categories');
-
-        var catList = categories[category];
-        if (category == "Custom") {
-            // Make sure we have sorted emoji.
-            catList = catList.toSorted((a, b) => emojimapping[a].text.localeCompare(emojimapping[b].text));
-        }
-
-        catList.forEach(function(item, i) {
-            if (emojimapping.hasOwnProperty(item)) {
-                $('<div class="emojisearch-element"></div>')
-                    .attr("text", emojimapping[item].text)
-                    .attr("category", category)
-                    .html(emojimapping[item].preview)
-                    .appendTo('div.emojisearch-content');
+        // Add custom emoji if they exist.
+        entries.forEach(function(entry, i) {
+            if (entry.type != "emote") {
+                return;
             }
+
+            if (!categories.hasOwnProperty("Custom")) {
+                categories["Custom"] = []
+            }
+
+            categories["Custom"].push(entry.text.toLowerCase());
         });
-    });
+
+        // Find icons for categories.
+        var catkeys = {};
+        Object.keys(categories).forEach(function(category) {
+            catkeys[categories[category][0]] = "";
+        });
+
+        // Make a mapping of the emojis and emotes.
+        var emojimapping = {}
+        entries.forEach(function(entry, i) {
+            var text = entry.text.toLowerCase();
+            if (catkeys.hasOwnProperty(text)) {
+                catkeys[text] = entry.preview;
+            }
+            emojimapping[text] = entry;
+        });
+
+        // Nuke any existing categories we had.
+        $("div.emojisearch-category").remove();
+        $("div.emojisearch-element").remove();
+
+        // Actually render the categories.
+        Object.keys(categories).forEach(function(category, i) {
+            var first = categories[category][0];
+            var preview = catkeys[first];
+
+            $('<div class="emojisearch-category"></div>')
+                .attr("category", category)
+                .html(preview)
+                .appendTo('div.emojisearch-categories');
+
+            var catList = categories[category];
+            if (category == "Custom") {
+                // Make sure we have sorted emoji.
+                catList = catList.toSorted((a, b) => emojimapping[a].text.localeCompare(emojimapping[b].text));
+            }
+
+            catList.forEach(function(entry, i) {
+                if (emojimapping.hasOwnProperty(entry)) {
+                    $('<div class="emojisearch-element"></div>')
+                        .attr("text", emojimapping[entry].text)
+                        .attr("category", category)
+                        .html(emojimapping[entry].preview)
+                        .appendTo('div.emojisearch-content');
+                }
+            });
+        });
+    }
+
+    // Initial creation.
+    create();
+    populate(items);
 
     // Set up category selection.
     $("div.emojisearch-category").click(function() {
@@ -263,7 +275,7 @@ function emojisearch(state, button, textbox, items) {
     });
 
     function update(newitems) {
-        items = newitems;
+        populate(newitems);
     }
 
     return update;
