@@ -10,7 +10,7 @@ function InputState() {
         this.current = newState;
 
         this.callbacks.forEach(function(callback) {
-            callback(this.current);
+            callback(newState);
         });
     }
 }

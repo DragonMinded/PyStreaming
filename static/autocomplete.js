@@ -18,8 +18,8 @@ function autocomplete(state, selector, items) {
     items = items.toSorted((a, b) => a.text.localeCompare(b.text));
 
     // Register a callback for controlling global state.
-    state.registerStateChangeCallback(function(state) {
-        if (state == "search") {
+    state.registerStateChangeCallback(function(newState) {
+        if (newState == "search") {
             if (displayed) {
                 hide();
             }

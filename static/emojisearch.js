@@ -118,6 +118,16 @@ function emojisearch(state, button, textbox, items) {
     create();
     populate(items);
 
+    // Register a callback for controlling global state.
+    state.registerStateChangeCallback(function(newState) {
+        // Allow ourselves to be hidden if an external system wants us closed.
+        if (newState == "empty") {
+            if (displayed) {
+                hide();
+            }
+        }
+    });
+
     // Set up category selection.
     $("div.emojisearch-category").click(function() {
         // Don't allow selection when search is happening.

@@ -337,6 +337,17 @@ $('#pictochat-container').on('transitionend webkitTransitionEnd oTransitionEnd',
   ensureScrolled();
 });
 
+// Make sure we close the emoji search box after clicking send, draw or collapsing chat.
+$('#sendbutton').on('click', function() {
+    inputState.setState("empty");
+});
+$('#drawbutton').on('click', function() {
+    inputState.setState("empty");
+});
+$('div.chat-collapse').on('click', function() {
+    inputState.setState("empty");
+});
+
 // Automatically move the chat scroll to the bottom on window resize if we're autoscrolling.
 $(window).resize(function() {
   var box = $( 'div.messages' );
