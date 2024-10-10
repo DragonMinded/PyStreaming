@@ -62,7 +62,7 @@ html, body {
 }
 
 .chat-spacer {
-  width: 260px;
+  width: 300px;
   padding: 0px;
   margin: 0px;
   height: 100%;
@@ -76,7 +76,7 @@ html, body {
 .chat-pane {
   position: absolute;
   right: 0px;
-  width: 335px;
+  width: 375px;
   height: 100%;
   padding: 0px;
   margin: 0px;
@@ -256,6 +256,8 @@ img.viewer-count-icon {
 
 .chat-heading span.drew:after {
   content: " drew:";
+  font-weight: normal;
+  color: #000;
 }
 
 .command-heading span.connected:after {
@@ -302,11 +304,11 @@ img.viewer-count-icon {
 }
 
 #sendbutton {
-  width: 185px;
+  width: 215px;
 }
 
 #drawbutton {
-  width: 60px;
+  width: 70px;
 }
 
 .error {
@@ -316,19 +318,20 @@ img.viewer-count-icon {
 #pictochat-canvas, .pictochat-drawing {
   outline: 3px solid #333;
   background-color: #f8f8f8;
-  width: 230px;
-  height: auto;
-  margin: 10px 15px 0px 15px;
 }
 
-.pictochat-drawing { 
+#pictochat-canvas {
+  margin: 10px 30px 0px 30px;
+}
+
+.pictochat-drawing {
   margin: 2px 2px 0px 3px;
   outline-color: var(--user-color);
 }
 
 .pictochat-container {
   background-color: #333;
-  width: 260px;
+  width: 300px;
   height: 0px;
   transition: 0.1s ease-in-out;
   overflow: hidden;

@@ -11,7 +11,7 @@ from data import Data
 
 
 # Pictochat width/height, shared in a couple places.
-PICTOCHAT_IMAGE_WIDTH: int = 230
+PICTOCHAT_IMAGE_WIDTH: int = 240
 PICTOCHAT_IMAGE_HEIGHT: int = 120
 
 
