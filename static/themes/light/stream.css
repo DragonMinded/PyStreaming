@@ -97,7 +97,7 @@ html, body {
   position: relative;
   flex-direction: row;
   align-items: stretch;
-  background: #eeeeee;
+  background: #e5e5e1;
 }
 
 .chat-collapse {
@@ -105,7 +105,7 @@ html, body {
   top: 25px;
   width: 75px;
   cursor: default;
-  background: #eeeeee;
+  background: #e5e5e1;
   font-size: x-large;
   padding-left: 10px;
   border-radius: 5px 0px 0px 5px;
@@ -149,6 +149,17 @@ html, body {
 
 .message-input > input {
   width: 100%;
+}
+
+input:not(#emojisearch-text), select {
+  border: 1px solid #bbbbb7;
+  background: #fafafa;
+  padding: 2px 3px 2px 3px;
+}
+
+form#login button, form#admin button, .buttons-container button {
+  border: 1px solid #bbbbb7;
+  background: #fafafa;
 }
 
 input.message {
@@ -266,9 +277,9 @@ img.viewer-count-icon {
 
 .chat-message:has(.command-heading.connected-users) {
   padding: 5px;
-  border: 3px solid lightgray;
+  border: 3px solid #bbbbb7;
   margin-bottom: 5px;
-  background: #e7e7e7;
+  background: #f2f2f2;
 }
 
 .chat-message:not(.self):has(.chat-heading) {
@@ -290,13 +301,13 @@ img.viewer-count-icon {
 }
 
 .chat-message.dark-user-text-color:has(.chat-heading, .user-joined, .user-left, .user-renamed, .user-recolored, .chat-action) {
-  background: color-mix(in srgb, var(--user-color) 10%, #e7e7e7);
+  background: color-mix(in srgb, var(--user-color) 10%, #e1e1e1);
   color: #000;
 }
 
 .chat-message.light-user-text-color:has(.chat-heading, .user-joined, .user-left, .user-renamed, .user-recolored, .chat-action) {
-  background: color-mix(in srgb, var(--user-color) 10%, #444);
-  color: #eaeaea;
+  background: color-mix(in srgb, var(--user-color) 10%, #606060);
+  color: #f2f2f2;
 }
 
 .user-joined span.icon:after {
