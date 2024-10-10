@@ -261,16 +261,34 @@
               $('div.chat-pane').toggleClass('chat-collapsed');
               $('div.chat-spacer').toggleClass('chat-collapsed');
             });
-            
+
             // Hide the collapse hover after some seconds, because it can be annoying.
             var hoverTimeout;
+            var hovering = false;
             $("div.chat-pane").hover(function() {
+              hovering = true;
               clearTimeout(hoverTimeout);
               $("div.chat-collapse").removeClass("chat-collapse-hidden");
               hoverTimeout = setTimeout(function() {
                 $("div.chat-collapse").addClass("chat-collapse-hidden");
               }, 3000);
-            }, function() {});
+            }, function() {
+              hovering = false;
+              clearTimeout(hoverTimeout);
+            });
+
+            // Ensure that hovering over the collapse indicator itself doesn't count
+            // towards the timeout for hiding.
+            $("div.chat-collapse").hover(function() {
+              clearTimeout(hoverTimeout);
+            }, function() {
+              clearTimeout(hoverTimeout);
+              if (hovering) {
+                hoverTimeout = setTimeout(function() {
+                  $("div.chat-collapse").addClass("chat-collapse-hidden");
+                }, 3000);
+              }
+            });
           </script>
           {% endif %}
 
