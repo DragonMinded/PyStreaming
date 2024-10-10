@@ -505,7 +505,7 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 # Set the color of your name
                 color = get_color(message.strip().lower())
 
-                if not color:
+                if color is None:
                     socketio.emit(
                         'server',
                         {'msg': f'Invalid color {message} specified, try a color name, an HTML color like #ff00ff or "random" for a random color.'},
