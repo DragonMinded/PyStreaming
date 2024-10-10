@@ -262,6 +262,16 @@ img.viewer-count-icon {
   content: ":";
 }
 
+.user-joined span.icon:after {
+  content: "\21AA";
+  padding-right: 5px;
+}
+
+.user-left span.icon:after {
+  content: "\21A9";
+  padding-right: 5px;
+}
+
 .server-message {
   font-weight: bold;
   color: #f00;
