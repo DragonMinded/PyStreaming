@@ -274,6 +274,11 @@ img.viewer-count-icon {
   padding-right: 5px;
 }
 
+.chat-action span.icon:after {
+  content: "\2B51";
+  padding-right: 2px;
+}
+
 .server-message {
   font-weight: bold;
   color: #e60e0e;

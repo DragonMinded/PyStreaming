@@ -535,7 +535,7 @@ socket.on( 'action received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-action">* ' + userify(iconify(msg) + escapehtml(msg.username)) + '</div> ' +
+      '<div class="chat-action"><span class="icon"></span>' + userify(iconify(msg) + escapehtml(msg.username)) + '</div> ' +
       '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>',
       msg.username == username ? 'self' : 'other',
       msg.color
