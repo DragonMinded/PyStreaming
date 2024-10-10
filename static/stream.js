@@ -354,6 +354,11 @@ $(window).resize(function() {
   if (autoscroll) {
     box[0].scrollTop = scrollTopMax(box[0]) + 1;
   }
+  // Recalculate autoscroll since it could have been enabled by a resize.
+  autoscroll = scrollTop(box[0]) >= scrollTopMax(box[0]);
+  if (autoscroll) {
+    $( 'div.new-messages-alert' ).css( 'display', 'none' );
+  }
 });
 
 // All of our websocket messages from the server are handled below.
