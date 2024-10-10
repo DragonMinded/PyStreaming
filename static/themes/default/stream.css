@@ -230,7 +230,7 @@ img.viewer-count-icon {
   margin-bottom: -1px;
 }
 
-.user-joined, .user-left, .user-renamed, .command-heading, .user-list, .user-item, .server-message, .chat-heading, .chat-body, .chat-action {
+.user-joined, .user-left, .user-renamed, .user-recolored, .command-heading, .user-list, .user-item, .server-message, .chat-heading, .chat-body, .chat-action {
   display: inline;
 }
 
@@ -238,7 +238,7 @@ img.viewer-count-icon {
   white-space: nowrap;
 }
 
-.user-joined, .user-left, .user-renamed, .chat-heading, .chat-action {
+.user-joined, .user-left, .user-renamed, .user-recolored, .chat-heading, .chat-action {
   color: var(--user-color);
 }
 
@@ -246,7 +246,7 @@ img.viewer-count-icon {
   color: #000;
 }
 
-.chat-heading, .chat-action, .user-joined, .user-left, .user-renamed, .command-heading {
+.chat-heading, .chat-action, .user-joined, .user-left, .user-renamed, .user-recolored, .command-heading {
   font-weight: bold;
 }
 
@@ -256,6 +256,10 @@ img.viewer-count-icon {
 
 .chat-heading span.drew:after {
   content: " drew:";
+}
+
+.command-heading span.connected:after {
+  content: ":";
 }
 
 .server-message {

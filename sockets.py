@@ -514,12 +514,11 @@ def handle_message(json: Dict[str, Any], methods: List[str] = ['GET', 'POST']) -
                 else:
                     socket_to_info[request.sid].color = color
                     socketio.emit(
-                        'action received',
+                        'recolor',
                         {
                             'username': socket_to_info[request.sid].username,
                             'type': socket_to_info[request.sid].type,
                             'color': socket_to_info[request.sid].htmlcolor,
-                            'message': 'changed their color!',
                         },
                         room=socket_to_info[request.sid].streamer,
                     )

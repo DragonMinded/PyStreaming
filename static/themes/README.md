@@ -152,7 +152,10 @@ whether the message originated from the current chatter, another chatter, or a s
 message such as help display or a user list response. Additionally, for all messages
 that are not server-generated, the CSS variable `--user-color` is set on the
 `chat-message` container that matches the color of the chatter at the time of receiving
-the messgae. The inner contents of each message type is documented below.
+the messgae. Every message that has the user color CSS variable will also have either
+the `dark-user-text-color` or `light-user-text-color` CSS class applied as well,
+calculated based on the luminance of the user's color. The inner contents of each
+message type is documented below.
 
 For any user-generated message (in practice this is the "Message Received" and "Action
 Received" message) that contain text, it's possible to mention another user by
@@ -164,13 +167,14 @@ the `user-item` class applied to it.
 
 #### User Joined
 
-The user joined message is a simple message that contains a `user-joined` container
-that just contains text that the particular user joined. This will have the user color
-variable set for use in styling. It looks like the following:
+The user joined message is a two-part message that contains a `user-joined` container
+and a `chat-body` container that just contains text that the particular user joined.
+This will have the user color variable set for use in styling. It looks like the following:
 
 ```
 <div.chat-message>
   <div.user-joined />
+  <div.chat-body />
 </div.chat-message>
 ```
 
@@ -206,26 +210,44 @@ variable set either. It looks like the following:
 
 #### User Left
 
-The user left message is a simple message that contains a `user-left` container
-that just contains text that the particular user left. This will have the user
-color variable set for use in styling. It looks like the following:
+The user joined message is a two-part message that contains a `user-left` container
+and a `chat-body` container that just contains text that the particular user left.
+This will have the user color variable set for use in styling. It looks like the following:
 
 ```
 <div.chat-message>
   <div.user-left />
+  <div.chat-body />
 </div.chat-message>
 ```
 
 #### User Renamed
 
-The user renamed message is a simple message that contains a `user-renamed` container
-that just contains text that the particular user renamed themselves form their old
-name to their new name. This will have the user color variable set for use in
-styling. It looks like the following:
+The user renamed message is a three-part message that contains a `user-renamed`
+container containing the old name, a `chat-body` container that just contains text
+that the particular user renamed themselves from their old name to their new namei
+and a `user-renamed` container containing the new name. This will have the user
+color variable set for use in styling. It looks like the following:
 
 ```
 <div.chat-message>
   <div.user-renamed />
+  <div.chat-body />
+  <div.user-renamed />
+</div.chat-message>
+```
+
+#### User Recolored
+
+The user recolored message is a two-part message that contains a `user-recolored`
+container for the name of the chatter that recolored themselves and a `chat-body`
+container that contains the text that they recolored. This will have the user
+color variable set for use in styling. It looks like the following:
+
+```
+<div.chat-message>
+  <div.user-recolored />
+  <div.chat-body />
 </div.chat-message>
 ```
 
@@ -246,15 +268,17 @@ color variable set for use in styling. It looks like the following:
 
 #### Action Received
 
-The action received message is a one-part message that contains a `chat-action`
-container for the name of the chatter that sent the message and the text of the
-action that they performed. Note that the chat action could contain `<img>` tags
-for custom emoji that the user sent. This will have the user color variable set
-for use in styling. It looks like the following:
+The action received message is a two-part message that contains a `chat-action`
+container for the name of the chatter that sent the message and a `chat-body`
+container that contains the text of the action that they performed. Note that the
+chat action could contain `<img>` tags for custom emoji that the user sent. This
+will have the user color variable set for use in styling. It looks like the
+following:
 
 ```
 <div.chat-message>
   <div.chat-action />
+  <div.chat-body />
 </div.chat-message>
 ```
 

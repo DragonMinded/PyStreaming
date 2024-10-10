@@ -93,7 +93,7 @@ var ensureScrolled = function() {
 var add = function( inner, type, color ) {
   var box = $( 'div.messages' );
   if (color != undefined) {
-    box.append( '<div class="chat-message ' + type + '" style="--user-color: ' + color + '">' + inner + '</div>' );
+    box.append( '<div class="chat-message ' + type + ' ' + colorLuminanceClass(color) + '" style="--user-color: ' + color + '">' + inner + '</div>' );
   } else {
     box.append( '<div class="chat-message ' + type + '">' + inner + '</div>' );
   }
@@ -436,14 +436,19 @@ socket.on( 'login success', function( msg ) {
 
 socket.on( 'connected', function( msg ) {
   if( connected ) {
-    add( '<div class="user-joined ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' joined!</div>', msg.username == username ? 'self' : 'other', msg.color );
+    add(
+      '<div class="user-joined">' + userify(iconify(msg) + escapehtml(msg.username)) + '</div> ' +
+      '<div class="chat-body">joined the chat</div>',
+       msg.username == username ? 'self' : 'other',
+       msg.color
+    );
   }
   if( msg.username == username && !connected ) {
     var userlist = msg.users.map(function(user) {
         return userify(iconify(user) + escapehtml(user.username), user.color);
     });
     add(
-      '<div class="command-heading connected-users">Connected users:</div> ' +
+      '<div class="command-heading connected-users">Connected users<span class="connected" /></div> ' +
       '<div class="user-list">' + userlist.join(', ') + '</div>',
       'server',
     );
@@ -459,7 +464,12 @@ socket.on( 'server', function( msg ) {
 
 socket.on( 'disconnected', function( msg ) {
   if( connected ) {
-    add( '<div class="user-left ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + ' left!</div>', msg.username == username ? 'self' : 'other', msg.color );
+    add(
+      '<div class="user-left">' + userify(iconify(msg) + escapehtml(msg.username)) + '</div> ' +
+      '<div class="chat-body">left the chat</div>',
+      msg.username == username ? 'self' : 'other',
+      msg.color
+    );
   }
   users = msg.users;
   updateusers();
@@ -470,19 +480,39 @@ socket.on( 'userlist', function( msg ) {
     return userify(iconify(user) + escapehtml(user.username), user.color);
   });
   add(
-    '<div class="command-heading connected-users">Connected users:</div> ' +
+    '<div class="command-heading connected-users">Connected users<span class="connected" /></div> ' +
     '<div class="user-list">' + userlist.join(', ') + '</div>',
     'server',
   );
 })
 
 socket.on( 'rename', function( msg ) {
-  add( '<div class="user-renamed ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.oldname)) + ' is now known as ' + userify(iconify(msg) + escapehtml(msg.newname)) + '!</div>', msg.oldname == username ? 'self' : 'other', msg.color );
+  add(
+    '<div class="user-renamed">' + userify(iconify(msg) + escapehtml(msg.oldname)) + '</div> ' +
+    '<div class="chat-body">is now known as</div> ' +
+    '<div class="user-renamed">' + userify(iconify(msg) + escapehtml(msg.newname)) + '</div>',
+    msg.oldname == username ? 'self' : 'other',
+    msg.color
+  );
   if (msg.oldname == username) {
       username = msg.newname;
   }
   users = msg.users;
   updateusers();
+})
+
+socket.on( 'recolor', function( msg ) {
+  if( connected ) {
+    if( msg.username == username ) {
+      clearerror();
+    }
+    add(
+      '<div class="user-recolored">' + userify(iconify(msg) + escapehtml(msg.username)) + '</div> ' +
+      '<div class="chat-body">changed their color</div>',
+      msg.username == username ? 'self' : 'other',
+      msg.color
+    );
+  }
 })
 
 socket.on( 'message received', function( msg ) {
@@ -491,7 +521,7 @@ socket.on( 'message received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + '<span class="sent" /></div> ' +
+      '<div class="chat-heading">' + userify(iconify(msg) + escapehtml(msg.username)) + '<span class="sent" /></div> ' +
       '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>',
       msg.username == username ? 'self' : 'other',
       msg.color
@@ -504,7 +534,12 @@ socket.on( 'action received', function( msg ) {
     if( msg.username == username ) {
       clearerror();
     }
-    add( '<div class="chat-action ' + colorLuminanceClass(msg.color) + '">* ' + userify(iconify(msg) + escapehtml(msg.username)) + ' ' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>', msg.username == username ? 'self' : 'other', msg.color );
+    add(
+      '<div class="chat-action">* ' + userify(iconify(msg) + escapehtml(msg.username)) + '</div> ' +
+      '<div class="chat-body">' + linkifyHtml(embiggen(highlight(escapehtml(msg.message))), linkifyOptions) + '</div>',
+      msg.username == username ? 'self' : 'other',
+      msg.color
+    );
   }
 })
 
@@ -514,8 +549,10 @@ socket.on( 'drawing received', function( msg ) {
       clearerror();
     }
     add(
-      '<div class="chat-heading ' + colorLuminanceClass(msg.color) + '">' + userify(iconify(msg) + escapehtml(msg.username)) + '<span class="drew" /></div> ' +
-      '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '"></img>', msg.username == username ? 'self' : 'other', msg.color
+      '<div class="chat-heading">' + userify(iconify(msg) + escapehtml(msg.username)) + '<span class="drew" /></div> ' +
+      '<img class="pictochat-drawing" width="' + pictochatWidth + '" height="' + pictochatHeight + '" src="' + msg.src + '"></img>',
+      msg.username == username ? 'self' : 'other',
+      msg.color
     );
   }
 })
