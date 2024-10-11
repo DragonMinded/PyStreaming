@@ -155,11 +155,14 @@ input:not(#emojisearch-text), select {
   border: 1px solid #bbbbb7;
   background: #fafafa;
   padding: 2px 3px 2px 3px;
+  border-radius: 3px;
 }
 
 form#login button, form#admin button, .buttons-container button {
   border: 1px solid #bbbbb7;
+  padding: 2px 3px 2px 3px;
   background: #fafafa;
+  border-radius: 4px;
 }
 
 input.message {
