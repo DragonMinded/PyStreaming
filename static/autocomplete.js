@@ -44,7 +44,7 @@ function autocomplete(state, selector, items) {
         }
 
         // Are we closing the menu?
-        if(event.keyCode == 27) {
+        if(event.key == "Escape") {
             // Close menu.
             hide();
             handled = true;
@@ -53,8 +53,8 @@ function autocomplete(state, selector, items) {
         }
 
         // Is this a menu movement?
-        if(event.keyCode == 38 || event.keyCode == 40) {
-            if (event.keyCode == 38) {
+        if(event.key == "ArrowUp" || event.key == "ArrowDown") {
+            if (event.key == "ArrowUp") {
                 cursorup();
             } else {
                 cursordown();
@@ -67,7 +67,7 @@ function autocomplete(state, selector, items) {
         }
 
         // Is this a menu selection?
-        if(event.keyCode == 13 || event.keyCode == 9) {
+        if(event.key == "Enter" || event.key == "Tab") {
             var choice = cursorselection();
             selectOption(choice);
 
@@ -78,7 +78,7 @@ function autocomplete(state, selector, items) {
         }
     });
 
-    $(selector).on('keyup focus click', function(event) {
+    $(selector).on('keyup focus click', function() {
         if (handled) {
             handled = false;
             return;
